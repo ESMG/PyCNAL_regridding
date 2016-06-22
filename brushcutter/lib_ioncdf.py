@@ -36,3 +36,13 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 
 	# close file
 	fid.close()
+
+def read_field(file_name,variable_name,frame=None):
+	fid = nc.Dataset(file_name,'r')
+	if frame is not None:
+		out = fid.variables[variable_name][frame,:].squeeze()
+	else:
+		out = fid.variables[variable_name][:].squeeze()
+	fid.close()
+	return out
+		

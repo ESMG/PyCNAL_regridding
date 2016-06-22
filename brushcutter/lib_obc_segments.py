@@ -1,4 +1,5 @@
 import numpy as np
+from brushcutter import lib_ioncdf as ncdf
 
 class obc_segment():
 	''' A class describing a MOM open boundary condtion segment
@@ -75,3 +76,8 @@ class obc_variable():
 		return None
 
 		
+	def interpolate_from(self,filename,variable,frame=None,maskfile=None,maskvar=None):
+		# first read the original field
+		datasrc = ncdf.read_field(filename,variable,frame=frame)
+		print datasrc.shape
+		return None
