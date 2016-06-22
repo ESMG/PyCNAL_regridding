@@ -10,13 +10,15 @@ import numpy as np
 ESMF.Manager(debug=True)
 
 # Use example provided with ESMPy
-srcdir = '/Users/raphael/tmp_install/esmf/src/addon/ESMPy/examples/data/'
+srcdir = '/Users/raphael/tmp_install/esmf/src/addon/ESMPy/examples/data/' # laptop
+srcdir = '/Volumes/P4/workdir/raphael/work_brushcutter/'                  # proteus
 srcgrid = srcdir + 'so_Omon_GISS-E2.nc'
 
 # CCS grid is available here :
 # http://oceanus.esm.rutgers.edu:8080/thredds/catalog/ROMS/CCS/Run01/Inputs/catalog.html
 
-romsdir  = '/Users/raphael/STORAGE/ROMS/GRIDS/'
+romsdir  = '/Users/raphael/STORAGE/ROMS/GRIDS/'             # laptop
+romsdir  = '/Volumes/P4/workdir/raphael/work_brushcutter/'  # proteus
 romsgrid = romsdir + 'CCS_7k_0-360_fred_grd.nc'
 
 # Create source grid
