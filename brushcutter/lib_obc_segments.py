@@ -1,5 +1,7 @@
 import numpy as np
 from brushcutter import lib_ioncdf as ncdf
+from brushcutter import fill_msg_grid as fill
+import matplotlib.pylab as plt
 
 class obc_segment():
 	''' A class describing a MOM open boundary condtion segment
@@ -22,6 +24,7 @@ class obc_segment():
 		self.segment_name = segment_name
 		self.items = []
 		self.items.append('segment_name')
+		self.debug = False
 		# iterate over all kwargs and store them as attributes for the object
 		if kwargs is not None:
 			self.__dict__.update(kwargs)
@@ -57,10 +60,20 @@ class obc_variable():
         		for key, value in kwargs.iteritems():
 				self.items.append(key)
 
+		# boundary geometry
 		if self.geometry == 'line':
 			self.dimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
 		elif self.geometry == 'surface':
 			self.dimensions_name = ('time','nvertical','ny_' + self.segment_name,'nx_' + self.segment_name,)
+
+		# default parameters for land extrapolation
+		# can be modified by changing the attribute of object
+		self.xmsg = -99
+		self.guess = 1
+		self.gtype = 1
+		self.nscan = 1500             # usually much less than this
+		self.epsx  = 1.e-2            # variable dependent
+		self.relc  = 0.6              # relaxation coefficient
 		return None
 
 	def print_all(self):
@@ -76,8 +89,69 @@ class obc_variable():
 		return None
 
 		
-	def interpolate_from(self,filename,variable,frame=None,maskfile=None,maskvar=None):
-		# first read the original field
+	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None):
+		''' interpolate_from performs a serie of operation :
+		* read input data
+		* perform extrapolation over land if desired
+			* read or create mask if extrapolation
+		* call ESMF for regridding
+		'''
+		# 1. read the original field
 		datasrc = ncdf.read_field(filename,variable,frame=frame)
-		print datasrc.shape
+		# 2. perform extrapolation over land
+		if drown is True:
+			# 2.1 read mask or compute it
+			if maskfile is not None:
+				mask = ncdf.read_field(maskfile,maskvar)
+			else:
+				mask = self.compute_mask_from_missing_value(datasrc,missing_value=missing_value)
+			# 2.2 mask the source data
+			datasrc[np.where(mask == 0)] = self.xmsg
+			if self.debug:
+				plt.figure() ; plt.contourf(datasrc[0,:,:]) ; plt.colorbar()
+			# 2.3 perform land extrapolation
+			dataextrap = self.drown_field(datasrc)
+		else:
+			dataextrap = datasrc.copy()
+		# 3. ESMF...
 		return None
+
+	def compute_mask_from_missing_value(self,data,missing_value=None):
+		''' compute mask from missing value :
+		* first try to get the mask assuming our data is a np.ma.array.
+		Well-written netcdf files with missing_value of _FillValue attributes
+		are translated into a np.ma.array
+		* else use provided missing value to create mask '''
+		try:
+			logicalmask = data.mask
+			mask = np.ones(logicalmask.shape)
+			mask[np.where(logicalmask == True)] = 0
+		except:
+			if missing_value is not None:
+				mask = np.ones(data.shape)
+				mask[np.where(data == missing_value)] = 0
+			else:
+				exit('Cannot create mask, please provide a missing_value, or maskfile')
+		if self.debug:
+			plt.figure() ; plt.contourf(mask[0,:,:]) ; plt.colorbar()
+		return mask
+
+	def drown_field(self,data):
+		''' drown_field is a wrapper around the fortran code fill_msg_grid.
+		depending on the output geometry, applies land extrapolation on 1 or N levels'''
+		if self.geometry == 'surface':
+			for kz in np.arange(self.nz):
+				tmpin = data[kz,:,:].transpose()
+				if self.debug and kz == 0:
+					plt.figure() ; plt.contourf(tmpin) ; plt.colorbar()
+				tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
+				self.nscan, self.epsx, self.relc)
+				data[kz,:,:] = tmpout.transpose()
+				if self.debug and kz == 0:
+					plt.figure() ; plt.contourf(tmpout) ; plt.colorbar() ; plt.show()
+		elif self.geometry == 'line':
+			tmpin = data[:,:].transpose()
+			tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
+			self.nscan, self.epsx, self.relc)
+			data[:,:] = tmpout.transpose()
+		return data

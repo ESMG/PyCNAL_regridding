@@ -9,9 +9,12 @@ north = los.obc_segment('segment_02',imin=1,imax=100,jmin=100,jmax=100,nvertical
 
 zeta_south = los.obc_variable(south,'zeta',geometry='line',obctype='flather')
 temp_south = los.obc_variable(south,'temp',geometry='surface',obctype='radiation')
-temp_north = los.obc_variable(north,'temp',geometry='surface',obctype='radiation')
+temp_north = los.obc_variable(north,'temp',geometry='surface',obctype='radiation',debug=True)
 
+# original file with correct _FillValue attributes
 temp_north.interpolate_from(woadir + 'temp_WOA13-CM2.1_monthly.nc','temp',frame=0)
+# modified file to break attributes
+temp_north.interpolate_from(woadir + 'temp_WOA13-CM2.1_monthly_nomiss.nc','temp',frame=0,missing_value=-1.0e+20)
 
 list_segments = [north,south]
 list_variables = [zeta_south,temp_south,temp_north]
