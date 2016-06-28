@@ -1,4 +1,5 @@
 import numpy as np
+import ESMF
 from brushcutter import lib_ioncdf as ncdf
 from brushcutter import fill_msg_grid as fill
 import matplotlib.pylab as plt
@@ -16,14 +17,16 @@ class obc_segment():
 	nvertical = number of vertical levels
 	'''
 
-	def __init__(self,segment_name,**kwargs):
+	def __init__(self,segment_name,target_grid_file,**kwargs):
 		''' constructor 
 		needs segment_name and named arguments as described in class doc 
 		create attributes for all given kwargs and add them to the items list
 		'''
 		self.segment_name = segment_name
+		self.target_grid_file = target_grid_file
 		self.items = []
 		self.items.append('segment_name')
+		self.items.append('target_grid')
 		self.debug = False
 		# iterate over all kwargs and store them as attributes for the object
 		if kwargs is not None:
@@ -34,6 +37,9 @@ class obc_segment():
 		self.nx = self.imax - self.imin + 1	
 		self.ny = self.jmax - self.jmin + 1	
 		self.nz = self.nvertical
+
+		self.grid_target = ESMF.Grid(filename=target_grid_file,filetype=ESMF.FileFormat.GRIDSPEC,
+		                             coord_names=["lon_rho", "lat_rho"]) # roms, change this !
 		
 		return None
 
@@ -84,10 +90,18 @@ class obc_variable():
 
 
 	def allocate(self):
-		self.data = np.empty(self.nz,self.ny,self.nx)
-
+		''' Allocate the output array '''
+		if self.geometry == 'surface':
+			self.data = np.empty((self.nz,self.ny,self.nx))
+		elif self.geometry == 'line':
+			self.data = np.empty((self.ny,self.nx))
 		return None
 
+	def set_constant_value(self,value):
+		''' Set constant value to field '''
+		self.allocate()
+		self.data[:] = value
+		return None
 		
 	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None):
 		''' interpolate_from performs a serie of operation :
@@ -113,7 +127,30 @@ class obc_variable():
 			dataextrap = self.drown_field(datasrc)
 		else:
 			dataextrap = datasrc.copy()
-		# 3. ESMF...
+		# 3. ESMF interpolation
+		# Create source grid
+		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC)
+		# Create a field on the centers of the grid
+		field_src = ESMF.Field(gridsrc, staggerloc=ESMF.StaggerLoc.CENTER)
+		# Create a field on the centers of the grid
+		field_target = ESMF.Field(self.grid_target, staggerloc=ESMF.StaggerLoc.CENTER)
+		# Set up a regridding object between source and destination
+		regridme = ESMF.Regrid(field_src, field_target,
+	                        regrid_method=ESMF.RegridMethod.BILINEAR)
+
+		self.allocate()
+		if self.geometry == 'surface':
+			for kz in np.arange(self.nz):
+				field_src.data[:] = dataextrap[kz,:,:].transpose()
+				field_target = regridme(field_src, field_target)
+				self.data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
+				if self.debug and kz == 0:
+					plt.figure() ; plt.contourf(field_target.data) ; plt.colorbar() ; plt.show()
+		elif self.geometry == 'line':
+			field_src.data[:] = dataextrap[:,:].transpose()
+			field_target = regridme(field_src, field_target)
+			self.data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
+		
 		return None
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):

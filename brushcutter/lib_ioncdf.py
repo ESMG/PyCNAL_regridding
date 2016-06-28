@@ -32,7 +32,7 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 	nctime[:] = 0.
 
 	for nvar in np.arange(len(list_variables)):
-		ncvariables[nvar][:] = -9999.
+		ncvariables[nvar][0,:] = list_variables[nvar].data
 
 	# close file
 	fid.close()
