@@ -75,10 +75,10 @@ class obc_variable():
 		# default parameters for land extrapolation
 		# can be modified by changing the attribute of object
 		self.xmsg = -99
-		self.guess = 1
-		self.gtype = 1
+		self.guess = 1                # guess = 1 zonal mean
+		self.gtype = 1                # cyclic or not
 		self.nscan = 1500             # usually much less than this
-		self.epsx  = 1.e-2            # variable dependent
+		self.epsx  = 1.e-4            # variable dependent / not with reduced var
 		self.relc  = 0.6              # relaxation coefficient
 		return None
 
@@ -121,10 +121,16 @@ class obc_variable():
 				mask = self.compute_mask_from_missing_value(datasrc,missing_value=missing_value)
 			# 2.2 mask the source data
 			datasrc[np.where(mask == 0)] = self.xmsg
+			datamin = datasrc[np.where(mask == 1)].min()
+			datamax = datasrc[np.where(mask == 1)].max()
 			if self.debug:
 				plt.figure() ; plt.contourf(datasrc[0,:,:]) ; plt.colorbar()
-			# 2.3 perform land extrapolation
-			dataextrap = self.drown_field(datasrc)
+			# 2.3 perform land extrapolation on reduced variable
+			datanorm = self.normalize(datasrc,datamin,datamax,mask)
+			if self.debug:
+				print datanorm.min() , datanorm.max(), datamin, datamax
+			datanormextrap = self.drown_field(datanorm)
+			dataextrap = self.unnormalize(datanormextrap,datamin,datamax)
 		else:
 			dataextrap = datasrc.copy()
 		# 3. ESMF interpolation
@@ -191,4 +197,15 @@ class obc_variable():
 			tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 			self.nscan, self.epsx, self.relc)
 			data[:,:] = tmpout.transpose()
+		return data
+
+	def normalize(self,data,datamin,datamax,mask):
+		''' create a reduced variable to perform better drown '''
+		datanorm = ( data -datamin) / (datamax - datamin)
+		datanorm[np.where( mask == 0 )] = self.xmsg
+		return datanorm
+
+	def unnormalize(self,datanorm,datamin,datamax):
+		''' return back to original range of values '''
+		data = datamin + datanorm * (datamax - datamin)
 		return data
