@@ -17,7 +17,7 @@ class obc_segment():
 	nvertical = number of vertical levels
 	'''
 
-	def __init__(self,segment_name,target_grid_file,**kwargs):
+	def __init__(self,segment_name,target_grid_file,target_model='MOM6',**kwargs):
 		''' constructor 
 		needs segment_name and named arguments as described in class doc 
 		create attributes for all given kwargs and add them to the items list
@@ -38,8 +38,13 @@ class obc_segment():
 		self.ny = self.jmax - self.jmin + 1	
 		self.nz = self.nvertical
 
+		if target_model == 'MOM6':
+			coord_names=["x", "y"]
+		elif target_model == 'ROMS':
+			coord_names=["lon_rho", "lat_rho"]
+
 		self.grid_target = ESMF.Grid(filename=target_grid_file,filetype=ESMF.FileFormat.GRIDSPEC,
-		                             coord_names=["lon_rho", "lat_rho"]) # roms, change this !
+		                             coord_names=coord_names) 
 		
 		return None
 
