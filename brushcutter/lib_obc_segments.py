@@ -31,7 +31,7 @@ class obc_segment():
 		# iterate over all kwargs and store them as attributes for the object
 		if kwargs is not None:
 			self.__dict__.update(kwargs)
-        		for key, value in kwargs.items():
+			for key, value in kwargs.items():
 				self.items.append(key)
 		# compute dimensions
 		self.nx = self.imax - self.imin + 1	
@@ -72,7 +72,7 @@ class obc_variable():
 		# iterate over all kwargs and store them as attributes for the object
 		if kwargs is not None:
 			self.__dict__.update(kwargs)
-        		for key, value in kwargs.items():
+			for key, value in kwargs.items():
 				self.items.append(key)
 
 		# boundary geometry
