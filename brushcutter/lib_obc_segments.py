@@ -31,7 +31,7 @@ class obc_segment():
 		# iterate over all kwargs and store them as attributes for the object
 		if kwargs is not None:
 			self.__dict__.update(kwargs)
-        		for key, value in kwargs.iteritems():
+        		for key, value in kwargs.items():
 				self.items.append(key)
 		# compute dimensions
 		self.nx = self.imax - self.imin + 1	
@@ -68,7 +68,7 @@ class obc_variable():
 		# iterate over all kwargs and store them as attributes for the object
 		if kwargs is not None:
 			self.__dict__.update(kwargs)
-        		for key, value in kwargs.iteritems():
+        		for key, value in kwargs.items():
 				self.items.append(key)
 
 		# boundary geometry
@@ -86,13 +86,6 @@ class obc_variable():
 		self.epsx  = 1.e-4            # variable dependent / not with reduced var
 		self.relc  = 0.6              # relaxation coefficient
 		return None
-
-	def print_all(self):
-		''' print all variable (debug) '''
-		for item in self.items:
-			exec('print item , self.' + str(item) )
-		return None
-
 
 	def allocate(self):
 		''' Allocate the output array '''
@@ -133,7 +126,7 @@ class obc_variable():
 			# 2.3 perform land extrapolation on reduced variable
 			datanorm = self.normalize(datasrc,datamin,datamax,mask)
 			if self.debug:
-				print datanorm.min() , datanorm.max(), datamin, datamax
+				print(datanorm.min() , datanorm.max(), datamin, datamax)
 			datanormextrap = self.drown_field(datanorm)
 			dataextrap = self.unnormalize(datanormextrap,datamin,datamax)
 		else:
