@@ -45,6 +45,10 @@ class obc_segment():
 
 		self.grid_target = ESMF.Grid(filename=target_grid_file,filetype=ESMF.FileFormat.GRIDSPEC,
 		                             coord_names=coord_names) 
+
+		self.locstream_target = ESMF.LocStream(self.nx * self.ny, coord_sys=ESMF.CoordSys.SPH_DEG)
+		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].squeeze()
+		self.locstream_target["ESMF:Lat"] = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].squeeze()
 		
 		return None
 
@@ -101,7 +105,7 @@ class obc_variable():
 		self.data[:] = value
 		return None
 		
-	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None):
+	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None,use_locstream=False):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -137,7 +141,10 @@ class obc_variable():
 		# Create a field on the centers of the grid
 		field_src = ESMF.Field(gridsrc, staggerloc=ESMF.StaggerLoc.CENTER)
 		# Create a field on the centers of the grid
-		field_target = ESMF.Field(self.grid_target, staggerloc=ESMF.StaggerLoc.CENTER)
+		if use_locstream:
+			field_target = ESMF.Field(self.locstream_target)
+		else:
+			field_target = ESMF.Field(self.grid_target, staggerloc=ESMF.StaggerLoc.CENTER)
 		# Set up a regridding object between source and destination
 		regridme = ESMF.Regrid(field_src, field_target,
 	                        regrid_method=ESMF.RegridMethod.BILINEAR)
@@ -147,13 +154,23 @@ class obc_variable():
 			for kz in np.arange(self.nz):
 				field_src.data[:] = dataextrap[kz,:,:].transpose()
 				field_target = regridme(field_src, field_target)
-				self.data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
+				if use_locstream:
+					if self.nx == 1:
+						self.data[kz,:,0] = field_target.data.copy()
+					elif self.ny == 1:
+						self.data[kz,0,:] = field_target.data.copy()
+				else:
+					self.data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
 				if self.debug and kz == 0:
 					plt.figure() ; plt.contourf(field_target.data) ; plt.colorbar() ; plt.show()
 		elif self.geometry == 'line':
 			field_src.data[:] = dataextrap[:,:].transpose()
 			field_target = regridme(field_src, field_target)
-			self.data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
+			if use_locstream:
+				# TODO check
+				self.data[:,:] = field_target.data.transpose()
+			else:
+				self.data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
 		
 		return None
 
