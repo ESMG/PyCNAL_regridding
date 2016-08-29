@@ -47,8 +47,8 @@ class obc_segment():
 		                             coord_names=coord_names) 
 
 		self.locstream_target = ESMF.LocStream(self.nx * self.ny, coord_sys=ESMF.CoordSys.SPH_DEG)
-		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].squeeze()
-		self.locstream_target["ESMF:Lat"] = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].squeeze()
+		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].flatten()
+		self.locstream_target["ESMF:Lat"] = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].flatten()
 		
 		return None
 
@@ -105,7 +105,7 @@ class obc_variable():
 		self.data[:] = value
 		return None
 		
-	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None,use_locstream=False):
+	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None,use_locstream=False,from_global=True):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -126,7 +126,8 @@ class obc_variable():
 			datamin = datasrc[np.where(mask == 1)].min()
 			datamax = datasrc[np.where(mask == 1)].max()
 			if self.debug:
-				plt.figure() ; plt.contourf(datasrc[0,:,:]) ; plt.colorbar()
+				datasrc_plt = np.ma.masked_values(datasrc,self.xmsg)
+				plt.figure() ; plt.contourf(datasrc_plt[0,:,:],40) ; plt.title('original') ; plt.colorbar() 
 			# 2.3 perform land extrapolation on reduced variable
 			datanorm = self.normalize(datasrc,datamin,datamax,mask)
 			if self.debug:
@@ -137,7 +138,7 @@ class obc_variable():
 			dataextrap = datasrc.copy()
 		# 3. ESMF interpolation
 		# Create source grid
-		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC)
+		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC,is_sphere=from_global)
 		# Create a field on the centers of the grid
 		field_src = ESMF.Field(gridsrc, staggerloc=ESMF.StaggerLoc.CENTER)
 		# Create a field on the centers of the grid
@@ -161,8 +162,10 @@ class obc_variable():
 						self.data[kz,0,:] = field_target.data.copy()
 				else:
 					self.data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
-				if self.debug and kz == 0:
-					plt.figure() ; plt.contourf(field_target.data) ; plt.colorbar() ; plt.show()
+					if self.debug and kz == 0:
+						data_target_plt = np.ma.masked_values(self.data[0,:,:],self.xmsg)
+						#data_target_plt = np.ma.masked_values(field_target.data,self.xmsg)
+						plt.figure() ; plt.contourf(data_target_plt[:,:],40) ; plt.colorbar() ; plt.title('regridded') ; plt.show()
 		elif self.geometry == 'line':
 			field_src.data[:] = dataextrap[:,:].transpose()
 			field_target = regridme(field_src, field_target)
@@ -191,7 +194,7 @@ class obc_variable():
 			else:
 				exit('Cannot create mask, please provide a missing_value, or maskfile')
 		if self.debug:
-			plt.figure() ; plt.contourf(mask[0,:,:]) ; plt.colorbar()
+			plt.figure() ; plt.contourf(mask[0,:,:],[0.99,1.01]) ; plt.colorbar() ; plt.title('land sea mask')
 		return mask
 
 	def drown_field(self,data):
@@ -201,12 +204,13 @@ class obc_variable():
 			for kz in np.arange(self.nz):
 				tmpin = data[kz,:,:].transpose()
 				if self.debug and kz == 0:
-					plt.figure() ; plt.contourf(tmpin) ; plt.colorbar()
+					tmpin_plt = np.ma.masked_values(tmpin,self.xmsg)
+					plt.figure() ; plt.contourf(tmpin_plt.transpose(),40) ; plt.colorbar() ; plt.title('normalized before drown')
 				tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 				self.nscan, self.epsx, self.relc)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
-					plt.figure() ; plt.contourf(tmpout) ; plt.colorbar() ; plt.show()
+					plt.figure() ; plt.contourf(tmpout.transpose(),40) ; plt.colorbar() ; plt.title('normalized after drown') 
 		elif self.geometry == 'line':
 			tmpin = data[:,:].transpose()
 			tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \

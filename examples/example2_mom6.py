@@ -8,8 +8,8 @@ from brushcutter import lib_ioncdf as ncdf
 
 # ---------- path to grid and WOA T/S data ---------------------
 woadir = '/Users/raphael/STORAGE/WOA13/'
-woatemp = 'temp_WOA13-CM2.1_monthly.nc'
-woasalt = 'salt_WOA13-CM2.1_monthly.nc'
+woatemp = 'temp_WOA13-CM2.1_monthly_ccs.nc'
+woasalt = 'salt_WOA13-CM2.1_monthly_ccs.nc'
 momgrd = '/Users/raphael/STORAGE/MOM6/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
@@ -31,13 +31,13 @@ zeta_north = los.obc_variable(north,'zeta',geometry='line',obctype='flather')
 zeta_west  = los.obc_variable(west ,'zeta',geometry='line',obctype='flather')
 
 # ---------- interpolate T/S from WOA monthly file, frame = 0 (jan) and using locstream (x2 speedup)
-temp_south.interpolate_from(woadir + woatemp,'temp',frame=0,use_locstream=True)
-temp_north.interpolate_from(woadir + woatemp,'temp',frame=0,use_locstream=True)
-temp_west.interpolate_from( woadir + woatemp,'temp',frame=0,use_locstream=True)
+temp_south.interpolate_from(woadir + woatemp,'temp',frame=0,use_locstream=True,from_global=False)
+temp_north.interpolate_from(woadir + woatemp,'temp',frame=0,use_locstream=True,from_global=False)
+temp_west.interpolate_from( woadir + woatemp,'temp',frame=0,use_locstream=True,from_global=False)
 
-salt_south.interpolate_from(woadir + woasalt,'salt',frame=0,use_locstream=True)
-salt_north.interpolate_from(woadir + woasalt,'salt',frame=0,use_locstream=True)
-salt_west.interpolate_from( woadir + woasalt,'salt',frame=0,use_locstream=True)
+salt_south.interpolate_from(woadir + woasalt,'salt',frame=0,use_locstream=True,from_global=False)
+salt_north.interpolate_from(woadir + woasalt,'salt',frame=0,use_locstream=True,from_global=False)
+salt_west.interpolate_from( woadir + woasalt,'salt',frame=0,use_locstream=True,from_global=False)
 
 # ---------- set constant value for SSH ----------------------
 zeta_south.set_constant_value(0.0)
@@ -52,4 +52,4 @@ list_variables = [temp_south,temp_north,temp_west, \
                   zeta_south,zeta_north,zeta_west ]
 
 # ---------- write to file -----------------------------------
-ncdf.write_obc_file(list_segments,list_variables,output='obc_woa13_m01_from_global.nc')
+ncdf.write_obc_file(list_segments,list_variables,output='obc_woa13_m01_from_regional.nc')
