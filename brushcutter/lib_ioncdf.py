@@ -11,12 +11,14 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 
 	# define the list of dimensions we need to write
 	fid.createDimension('time', None)
-	fid.createDimension('nvertical', list_segments[0].nvertical)
 	
         # dimensions
 	for segment in list_segments:
 		fid.createDimension('nx_' + segment.segment_name, segment.nx)
 		fid.createDimension('ny_' + segment.segment_name, segment.ny)
+	for variable in list_variables:
+		if (variable.geometry == 'surface'):
+			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name, variable.nz)
 
 	ncvariables = []
 

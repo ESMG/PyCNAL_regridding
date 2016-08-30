@@ -48,7 +48,6 @@ class obc_segment():
 		# compute dimensions
 		self.nx = self.imax - self.imin + 1	
 		self.ny = self.jmax - self.jmin + 1	
-		self.nz = self.nvertical
 
 		# coordinate names depend on ocean model
 		# MOM6 has all T,U,V points in one big grid, ROMS has in 3 separate ones.
@@ -84,6 +83,8 @@ class obc_variable():
 		
 		*** kwargs (mandatory) :
 
+		* nz : number of vertical levels
+
 		* geometry : shape of the output field (line, surface)
 
 		* obctype : radiation, flather,...
@@ -106,7 +107,7 @@ class obc_variable():
 		if self.geometry == 'line':
 			self.dimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
 		elif self.geometry == 'surface':
-			self.dimensions_name = ('time','nvertical','ny_' + self.segment_name,'nx_' + self.segment_name,)
+			self.dimensions_name = ('time','nz_' + self.segment_name + '_' + self.variable_name,'ny_' + self.segment_name,'nx_' + self.segment_name,)
 
 		# default parameters for land extrapolation
 		# can be modified by changing the attribute of object

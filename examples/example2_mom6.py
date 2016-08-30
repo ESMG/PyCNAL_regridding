@@ -13,18 +13,18 @@ woasalt = 'salt_WOA13-CM2.1_monthly_ccs.nc'
 momgrd = '/Users/raphael/STORAGE/MOM6/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
-south = los.obc_segment('segment_001',momgrd,imin=0,imax=360,jmin=0,  jmax=0,  nvertical=33)
-north = los.obc_segment('segment_002',momgrd,imin=0,imax=360,jmin=960,jmax=960,nvertical=33)
-west  = los.obc_segment('segment_003',momgrd,imin=0,imax=0,  jmin=0,  jmax=960,nvertical=33)
+south = los.obc_segment('segment_001',momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
+north = los.obc_segment('segment_002',momgrd,imin=0,imax=360,jmin=960,jmax=960)
+west  = los.obc_segment('segment_003',momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
 
 # ---------- define variables on each segment ------------------
-temp_south = los.obc_variable(south,'temp',geometry='surface',obctype='radiation')
-temp_north = los.obc_variable(north,'temp',geometry='surface',obctype='radiation')
-temp_west  = los.obc_variable(west, 'temp',geometry='surface',obctype='radiation')
+temp_south = los.obc_variable(south,'temp',nz=33,geometry='surface',obctype='radiation')
+temp_north = los.obc_variable(north,'temp',nz=33,geometry='surface',obctype='radiation')
+temp_west  = los.obc_variable(west, 'temp',nz=33,geometry='surface',obctype='radiation')
 
-salt_south = los.obc_variable(south,'salt',geometry='surface',obctype='radiation')
-salt_north = los.obc_variable(north,'salt',geometry='surface',obctype='radiation')
-salt_west  = los.obc_variable(west, 'salt',geometry='surface',obctype='radiation')
+salt_south = los.obc_variable(south,'salt',nz=33,geometry='surface',obctype='radiation')
+salt_north = los.obc_variable(north,'salt',nz=33,geometry='surface',obctype='radiation')
+salt_west  = los.obc_variable(west, 'salt',nz=33,geometry='surface',obctype='radiation')
 
 zeta_south = los.obc_variable(south,'zeta',geometry='line',obctype='flather')
 zeta_north = los.obc_variable(north,'zeta',geometry='line',obctype='flather')
