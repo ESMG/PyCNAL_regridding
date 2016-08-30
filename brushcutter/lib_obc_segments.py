@@ -5,23 +5,35 @@ from brushcutter import fill_msg_grid as fill
 import matplotlib.pylab as plt
 
 class obc_segment():
-	''' A class describing a MOM open boundary condtion segment
-	takes as argument : 
-	* segment_name = name of the given segment
-	* kwargs (named arguments) : 
-	imin = along x axis, where the segment begins
-	imax = along x axis, where the segment ends
-	jmin = along y axis, where the segment begins
-	jmax = along y axis, where the segment end
-	OPTIONAL :
-	nvertical = number of vertical levels
+	''' A class describing an open boundary condtion segment
 	'''
 
 	def __init__(self,segment_name,target_grid_file,target_model='MOM6',**kwargs):
-		''' constructor 
-		needs segment_name and named arguments as described in class doc 
-		create attributes for all given kwargs and add them to the items list
+		''' constructor of obc_segment - read target grid and create associated 
+		ESMF grid and locstream objects.
+
+		*** Args : 
+
+		* segment_name : name of the segment, MOM6 wants segment_001,... 
+		                                      ROMS wants north, south,...
+
+		* target_grid_file : full path to target grid file (e.g. ocean_hgrid.nc, roms_grd.nc)
+
+		* target_model (default MOM6) : can be MOM6 or ROMS
+	
+		*** kwargs (mandatory) : 
+
+		* imin : along x axis, where the segment begins
+
+		* imax : along x axis, where the segment ends
+
+		* jmin : along y axis, where the segment begins
+
+		* jmax : along y axis, where the segment end
+
 		'''
+
+		# read args 
 		self.segment_name = segment_name
 		self.target_grid_file = target_grid_file
 		self.items = []
@@ -38,14 +50,18 @@ class obc_segment():
 		self.ny = self.jmax - self.jmin + 1	
 		self.nz = self.nvertical
 
+		# coordinate names depend on ocean model
+		# MOM6 has all T,U,V points in one big grid, ROMS has in 3 separate ones.
 		if target_model == 'MOM6':
 			coord_names=["x", "y"]
 		elif target_model == 'ROMS':
 			coord_names=["lon_rho", "lat_rho"]
 
+		# import target grid into ESMF grid object
 		self.grid_target = ESMF.Grid(filename=target_grid_file,filetype=ESMF.FileFormat.GRIDSPEC,
 		                             coord_names=coord_names) 
 
+		# import same target grid into ESMF locstream object
 		self.locstream_target = ESMF.LocStream(self.nx * self.ny, coord_sys=ESMF.CoordSys.SPH_DEG)
 		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].flatten()
 		self.locstream_target["ESMF:Lat"] = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].flatten()
@@ -53,17 +69,28 @@ class obc_segment():
 		return None
 
 class obc_variable():
-	''' A class describing a MOM open boundary condition variable
-	takes as argument : 
-	* a segment object of class obc_segment
-	* variable_name = name of the given variable
-	* kwargs (named arguments) :
-	'''
+	''' A class describing an open boundary condition variable
+	on an obc_segment '''
 
 	def __init__(self,segment,variable_name,**kwargs):
-		''' constructor
-		create attributes for all given kwargs and attributes of input segment
+		''' constructor of obc_variable : import from segment and adds attributes
+		specific to this variable
+
+		*** args :
+
+		* segment : existing obc_segment object
+
+		* variable_name : name of the variable in output file
+		
+		*** kwargs (mandatory) :
+
+		* geometry : shape of the output field (line, surface)
+
+		* obctype : radiation, flather,...
+
 		'''
+
+		# read args 
 		self.variable_name = variable_name
 		self.items = []
 		self.items.append('variable_name')
@@ -111,6 +138,18 @@ class obc_variable():
 		* perform extrapolation over land if desired
 			* read or create mask if extrapolation
 		* call ESMF for regridding
+		
+		Optional arguments (=default) :
+
+		* frame=None : time record from input data (e.g. 1,2,..,12) when input file contains more than one record.
+		* drown=True : perform extrapolation of ocean values onto land
+		* maskfile=None : to read mask from a file (else uses missing value of variable)
+		* maskvar=None : if maskfile is defined, we need to provide name of mask array in maskfile
+		* missing_value=None : when missing value attribute not defined in input file, this allows to pass it
+		* use_locstream=False : interpolate from ESMF grid to ESMF locstream instead of ESMF grid, a bit faster.
+		                        use only to interpolate to boundary.
+		* from_global=True : if input file is global leave to true. If input is regional, set to False.
+		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
 		# 1. read the original field
 		datasrc = ncdf.read_field(filename,variable,frame=frame)
