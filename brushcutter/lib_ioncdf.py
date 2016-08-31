@@ -21,6 +21,8 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name, variable.nz)
 
 	ncvariables = []
+	lon_ncvariables = []
+	lat_ncvariables = []
 
 	# grid/time variables
 	nctime = fid.createVariable('time','f8',('time',))
@@ -28,13 +30,19 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 	# variables
 	for variable in list_variables:
 		ncvar = fid.createVariable(variable.variable_name + '_' + variable.segment_name, 'f8', variable.dimensions_name)
+		lon_ncvar = fid.createVariable('lon_' + variable.variable_name + '_' + variable.segment_name, 'f8', variable.hdimensions_name)
+		lat_ncvar = fid.createVariable('lat_' + variable.variable_name + '_' + variable.segment_name, 'f8', variable.hdimensions_name)
 		ncvariables.append(ncvar)
+		lon_ncvariables.append(lon_ncvar)
+		lat_ncvariables.append(lat_ncvar)
 
 
 	nctime[:] = 0.
 
 	for nvar in np.arange(len(list_variables)):
 		ncvariables[nvar][0,:] = list_variables[nvar].data
+		lon_ncvariables[nvar][0,:] = list_variables[nvar].lon
+		lat_ncvariables[nvar][0,:] = list_variables[nvar].lat
 
 	# close file
 	fid.close()
