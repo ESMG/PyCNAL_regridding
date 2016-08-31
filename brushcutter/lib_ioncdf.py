@@ -20,29 +20,35 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 		if (variable.geometry == 'surface'):
 			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name, variable.nz)
 
-	ncvariables = []
-	lon_ncvariables = []
-	lat_ncvariables = []
 
-	# grid/time variables
+	# define time and coordinates
 	nctime = fid.createVariable('time','f8',('time',))
 
-	# variables
+	ncsegments_lon = []
+	ncsegments_lat = []
+	for segment in list_segments:
+		ncseg_lon = fid.createVariable('lon_' + segment.segment_name, 'f8', segment.hdimensions_name)
+		ncseg_lat = fid.createVariable('lat_' + segment.segment_name, 'f8', segment.hdimensions_name)
+		ncsegments_lon.append(ncseg_lon)
+		ncsegments_lat.append(ncseg_lat)
+
+	# define variables
+	ncvariables = []
 	for variable in list_variables:
 		ncvar = fid.createVariable(variable.variable_name + '_' + variable.segment_name, 'f8', variable.dimensions_name)
-		lon_ncvar = fid.createVariable('lon_' + variable.variable_name + '_' + variable.segment_name, 'f8', variable.hdimensions_name)
-		lat_ncvar = fid.createVariable('lat_' + variable.variable_name + '_' + variable.segment_name, 'f8', variable.hdimensions_name)
 		ncvariables.append(ncvar)
-		lon_ncvariables.append(lon_ncvar)
-		lat_ncvariables.append(lat_ncvar)
 
 
-	nctime[:] = 0.
+	# fill time and coordinates
+	nctime[:] = 0. # to fix
 
+	for nseg in np.arange(len(list_segments)):
+		ncsegments_lon[nseg][0,:] = list_segments[nseg].lon
+		ncsegments_lat[nseg][0,:] = list_segments[nseg].lat
+
+	# fill variables
 	for nvar in np.arange(len(list_variables)):
 		ncvariables[nvar][0,:] = list_variables[nvar].data
-		lon_ncvariables[nvar][0,:] = list_variables[nvar].lon
-		lat_ncvariables[nvar][0,:] = list_variables[nvar].lat
 
 	# close file
 	fid.close()

@@ -65,6 +65,12 @@ class obc_segment():
 		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].flatten()
 		self.locstream_target["ESMF:Lat"] = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].flatten()
 		
+		# save lon/lat on this segment
+		self.lon = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].transpose().squeeze()
+		self.lat = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].transpose().squeeze()
+		# nc dimensions for horizontal coords
+		self.hdimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
+
 		return None
 
 class obc_variable():
@@ -105,14 +111,10 @@ class obc_variable():
 
 		# boundary geometry
 		if self.geometry == 'line':
-			self.hdimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
 			self.dimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
 		elif self.geometry == 'surface':
-			self.hdimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
 			self.dimensions_name = ('time','nz_' + self.segment_name + '_' + self.variable_name,'ny_' + self.segment_name,'nx_' + self.segment_name,)
 
-		self.lon = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].transpose().squeeze()
-		self.lat = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].transpose().squeeze()
 
 		# default parameters for land extrapolation
 		# can be modified by changing the attribute of object
