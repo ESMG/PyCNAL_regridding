@@ -162,15 +162,7 @@ class obc_variable():
 		# 1. read the original field
 		datasrc = ncdf.read_field(filename,variable,frame=frame)
 		if self.geometry == 'surface':
-			self.depth_in = ncdf.read_field(filename,depthname)
-			self.nz = self.depth_in.shape[0]
-			if len(self.depth_in.shape) == 1:
-				self.depth = np.empty((self.nz,self.ny,self.nx))
-				for kx in np.arange(self.nx):
-					for ky in np.arange(self.ny):
-						self.depth[:,ky,kx] = self.depth_in
-			else:
-				self.depth = self.depth_in
+			self.depth, self.nz = ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
 		# 2. perform extrapolation over land
 		if drown is True:
 			# 2.1 read mask or compute it

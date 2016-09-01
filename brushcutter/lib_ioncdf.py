@@ -69,3 +69,17 @@ def read_field(file_name,variable_name,frame=None):
 	fid.close()
 	return out
 		
+def read_vert_coord(file_name,vc_name,nx,ny):
+	''' read the vertical coordinate (vc) and reshape it if needed :
+	vertical coordinate can be either a function of z or (x,y,z)
+	'''
+	vc_in = read_field(file_name,vc_name)
+        nz = vc_in.shape[0]
+	if len(vc_in.shape) == 1:
+		vc = np.empty((nz,ny,nx))
+		for kx in np.arange(nx):
+			for ky in np.arange(ny):
+				vc[:,ky,kx] = vc_in
+	else:
+		vc = vc_in
+	return vc, nz
