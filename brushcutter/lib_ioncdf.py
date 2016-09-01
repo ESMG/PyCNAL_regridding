@@ -34,9 +34,14 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 
 	# define variables
 	ncvariables = []
+	ncvariables_vc = []
 	for variable in list_variables:
 		ncvar = fid.createVariable(variable.variable_name + '_' + variable.segment_name, 'f8', variable.dimensions_name)
 		ncvariables.append(ncvar)
+		if variable.geometry == 'surface':
+			ncvar_vc = fid.createVariable('vc_' + variable.variable_name + '_' + variable.segment_name, 'f8', \
+			variable.dimensions_name)
+			ncvariables_vc.append(ncvar_vc)
 
 
 	# fill time and coordinates
@@ -49,6 +54,8 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 	# fill variables
 	for nvar in np.arange(len(list_variables)):
 		ncvariables[nvar][0,:] = list_variables[nvar].data
+		if list_variables[nvar].geometry == 'surface':
+			ncvariables_vc[nvar][0,:] = list_variables[nvar].depth # rename to vc
 
 	# close file
 	fid.close()

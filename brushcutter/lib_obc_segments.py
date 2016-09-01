@@ -89,8 +89,6 @@ class obc_variable():
 		
 		*** kwargs (mandatory) :
 
-		* nz : number of vertical levels
-
 		* geometry : shape of the output field (line, surface)
 
 		* obctype : radiation, flather,...
@@ -134,13 +132,15 @@ class obc_variable():
 			self.data = np.empty((self.ny,self.nx))
 		return None
 
-	def set_constant_value(self,value):
+	def set_constant_value(self,value,depth_vector=None):
 		''' Set constant value to field '''
+		if depth_vector is not None:
+			self.nz = depth.vector.shape[0]
 		self.allocate()
 		self.data[:] = value
 		return None
 		
-	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None,use_locstream=False,from_global=True):
+	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None,use_locstream=False,from_global=True,depthname='z'):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -161,6 +161,16 @@ class obc_variable():
 		'''
 		# 1. read the original field
 		datasrc = ncdf.read_field(filename,variable,frame=frame)
+		if self.geometry == 'surface':
+			self.depth_in = ncdf.read_field(filename,depthname)
+			self.nz = self.depth_in.shape[0]
+			if len(self.depth_in.shape) == 1:
+				self.depth = np.empty((self.nz,self.ny,self.nx))
+				for kx in np.arange(self.nx):
+					for ky in np.arange(self.ny):
+						self.depth[:,ky,kx] = self.depth_in
+			else:
+				self.depth = self.depth_in
 		# 2. perform extrapolation over land
 		if drown is True:
 			# 2.1 read mask or compute it
