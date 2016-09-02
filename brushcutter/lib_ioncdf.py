@@ -1,7 +1,8 @@
 import netCDF4 as nc
 import numpy as np
+from brushcutter import lib_timemanager as tim
 
-def write_obc_file(list_segments,list_variables,output='out.nc'):
+def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 	''' write an open boundary condition file from a list
 	of segments and associated variables '''
 
@@ -23,6 +24,7 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 
 	# define time and coordinates
 	nctime = fid.createVariable('time','f8',('time',))
+	nctime.units = time_point.units
 
 	ncsegments_lon = []
 	ncsegments_lat = []
@@ -45,7 +47,7 @@ def write_obc_file(list_segments,list_variables,output='out.nc'):
 
 
 	# fill time and coordinates
-	nctime[:] = 0. # to fix
+	nctime[:] = time_point.data
 
 	for nseg in np.arange(len(list_segments)):
 		ncsegments_lon[nseg][0,:] = list_segments[nseg].lon
@@ -68,7 +70,7 @@ def read_field(file_name,variable_name,frame=None):
 		out = fid.variables[variable_name][:].squeeze()
 	fid.close()
 	return out
-		
+
 def read_vert_coord(file_name,vc_name,nx,ny):
 	''' read the vertical coordinate (vc) and reshape it if needed :
 	vertical coordinate can be either a function of z or (x,y,z)
@@ -83,3 +85,14 @@ def read_vert_coord(file_name,vc_name,nx,ny):
 	else:
 		vc = vc_in
 	return vc, nz
+
+def read_time(file_name,time_name='time',frame=0):
+	''' read time from the input file '''
+	otime = tim.timeobject()
+	fid = nc.Dataset(file_name,'r')
+	otime.data = fid.variables[time_name][frame]
+	otime.units = fid.variables[time_name].units
+	fid.close()
+	return otime
+
+

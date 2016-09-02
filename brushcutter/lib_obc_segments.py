@@ -140,7 +140,7 @@ class obc_variable():
 		self.data[:] = value
 		return None
 		
-	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None,use_locstream=False,from_global=True,depthname='z'):
+	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None,use_locstream=False,from_global=True,depthname='z',timename='time'):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -161,6 +161,10 @@ class obc_variable():
 		'''
 		# 1. read the original field
 		datasrc = ncdf.read_field(filename,variable,frame=frame)
+		try:
+			self.timesrc = ncdf.read_time(filename,timename,frame=frame)
+		except:
+			print('input data time variable not read')
 		if self.geometry == 'surface':
 			self.depth, self.nz = ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
 		# 2. perform extrapolation over land

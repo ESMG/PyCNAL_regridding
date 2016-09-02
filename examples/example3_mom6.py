@@ -28,5 +28,8 @@ list_segments = [domain]
 
 list_variables = [temp_domain,salt_domain] 
 
+#----------- time --------------------------------------------
+time = temp_domain.timesrc
+
 # ---------- write to file -----------------------------------
-ncdf.write_obc_file(list_segments,list_variables,output='clim_woa13_m01_from_global.nc')
+ncdf.write_obc_file(list_segments,list_variables,time,output='clim_woa13_m01_from_global.nc')
