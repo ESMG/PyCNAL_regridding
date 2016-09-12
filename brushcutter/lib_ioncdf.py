@@ -28,17 +28,17 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 
 	ncsegments_lon = []
 	ncsegments_lat = []
-#	ncsegments_ilist = []
-#	ncsegments_jlist = []
+	ncsegments_ilist = []
+	ncsegments_jlist = []
 	for segment in list_segments:
 		ncseg_lon = fid.createVariable('lon_' + segment.segment_name, 'f8', segment.hdimensions_name)
 		ncseg_lat = fid.createVariable('lat_' + segment.segment_name, 'f8', segment.hdimensions_name)
 		ncsegments_lon.append(ncseg_lon)
 		ncsegments_lat.append(ncseg_lat)
-#		ncseg_ilist = fid.createVariable('ilist_' + segment.segment_name, 'f8', segment.hdimensions_name)
-#		ncseg_jlist = fid.createVariable('jlist_' + segment.segment_name, 'f8', segment.hdimensions_name)
-#		ncsegments_ilist.append(ncseg_ilist)
-#		ncsegments_jlist.append(ncseg_jlist)
+		ncseg_ilist = fid.createVariable('ilist_' + segment.segment_name, 'f8', segment.hdimensions_name)
+		ncseg_jlist = fid.createVariable('jlist_' + segment.segment_name, 'f8', segment.hdimensions_name)
+		ncsegments_ilist.append(ncseg_ilist)
+		ncsegments_jlist.append(ncseg_jlist)
 
 	# define variables
 	ncvariables = []
@@ -58,9 +58,9 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 	for nseg in np.arange(len(list_segments)):
 		ncsegments_lon[nseg][0,:] = list_segments[nseg].lon
 		ncsegments_lat[nseg][0,:] = list_segments[nseg].lat
-#		ncsegments_ilist[nseg][0,:] = list_segments[nseg].ilist
+		ncsegments_ilist[nseg][0,:] = list_segments[nseg].ilist
 #		print(list_segments[nseg].jlist.shape)
-#		ncsegments_jlist[nseg][0,:] = list_segments[nseg].jlist
+		ncsegments_jlist[nseg][0,:] = list_segments[nseg].jlist
 
 	# fill variables
 	for nvar in np.arange(len(list_variables)):

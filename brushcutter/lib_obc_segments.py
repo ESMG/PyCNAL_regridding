@@ -51,6 +51,13 @@ class obc_segment():
 
 #		self.ilist = np.arange(self.imin,self.imax+1)
 #		self.jlist = np.arange(self.jmin,self.jmax+1)
+		self.ilist = np.empty((self.ny,self.nx))
+		self.jlist = np.empty((self.ny,self.nx))
+
+		for kx in np.arange(self.nx):
+			self.jlist[:,kx] = np.arange(self.jmin,self.jmax+1) / 2.
+		for ky in np.arange(self.ny):
+			self.ilist[ky,:] = np.arange(self.imin,self.imax+1) / 2.
 
 		# coordinate names depend on ocean model
 		# MOM6 has all T,U,V points in one big grid, ROMS has in 3 separate ones.
@@ -74,7 +81,7 @@ class obc_segment():
 		self.lon = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].transpose().squeeze()
 		self.lat = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].transpose().squeeze()
 		# nc dimensions for horizontal coords
-		self.hdimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
+		self.hdimensions_name = ('ny_' + self.segment_name,'nx_' + self.segment_name,)
 
 		return None
 
