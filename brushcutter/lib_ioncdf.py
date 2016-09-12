@@ -76,7 +76,7 @@ def read_vert_coord(file_name,vc_name,nx,ny):
 	vertical coordinate can be either a function of z or (x,y,z)
 	'''
 	vc_in = read_field(file_name,vc_name)
-        nz = vc_in.shape[0]
+	nz = vc_in.shape[0]
 	if len(vc_in.shape) == 1:
 		vc = np.empty((nz,ny,nx))
 		for kx in np.arange(nx):
