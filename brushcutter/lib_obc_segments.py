@@ -49,6 +49,9 @@ class obc_segment():
 		self.nx = self.imax - self.imin + 1	
 		self.ny = self.jmax - self.jmin + 1	
 
+#		self.ilist = np.arange(self.imin,self.imax+1)
+#		self.jlist = np.arange(self.jmin,self.jmax+1)
+
 		# coordinate names depend on ocean model
 		# MOM6 has all T,U,V points in one big grid, ROMS has in 3 separate ones.
 		if target_model == 'MOM6':
@@ -62,8 +65,10 @@ class obc_segment():
 
 		# import same target grid into ESMF locstream object
 		self.locstream_target = ESMF.LocStream(self.nx * self.ny, coord_sys=ESMF.CoordSys.SPH_DEG)
-		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].flatten()
-		self.locstream_target["ESMF:Lat"] = self.grid_target.coords[0][1][self.imin:self.imax+1,self.jmin:self.jmax+1].flatten()
+		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1, \
+		self.jmin:self.jmax+1].flatten()
+		self.locstream_target["ESMF:Lat"] = self.grid_target.coords[0][1][self.imin:self.imax+1, \
+		self.jmin:self.jmax+1].flatten()
 		
 		# save lon/lat on this segment
 		self.lon = self.grid_target.coords[0][0][self.imin:self.imax+1,self.jmin:self.jmax+1].transpose().squeeze()
@@ -111,7 +116,8 @@ class obc_variable():
 		if self.geometry == 'line':
 			self.dimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
 		elif self.geometry == 'surface':
-			self.dimensions_name = ('time','nz_' + self.segment_name + '_' + self.variable_name,'ny_' + self.segment_name,'nx_' + self.segment_name,)
+			self.dimensions_name = ('time','nz_' + self.segment_name + '_' + self.variable_name, \
+			'ny_' + self.segment_name,'nx_' + self.segment_name,)
 
 
 		# default parameters for land extrapolation
@@ -140,7 +146,8 @@ class obc_variable():
 		self.data[:] = value
 		return None
 		
-	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None,missing_value=None,use_locstream=False,from_global=True,depthname='z',timename='time'):
+	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None, \
+	                     missing_value=None,use_locstream=False,from_global=True,depthname='z',timename='time'):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -214,11 +221,13 @@ class obc_variable():
 					elif self.ny == 1:
 						self.data[kz,0,:] = field_target.data.copy()
 				else:
-					self.data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
+					self.data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1, \
+					                                                  self.imin:self.imax+1]
 					if self.debug and kz == 0:
 						data_target_plt = np.ma.masked_values(self.data[0,:,:],self.xmsg)
 						#data_target_plt = np.ma.masked_values(field_target.data,self.xmsg)
-						plt.figure() ; plt.contourf(data_target_plt[:,:],40) ; plt.colorbar() ; plt.title('regridded') ; plt.show()
+						plt.figure() ; plt.contourf(data_target_plt[:,:],40) ; plt.colorbar() ; 
+						plt.title('regridded') ; plt.show()
 		elif self.geometry == 'line':
 			field_src.data[:] = dataextrap[:,:].transpose()
 			field_target = regridme(field_src, field_target)
@@ -258,12 +267,14 @@ class obc_variable():
 				tmpin = data[kz,:,:].transpose()
 				if self.debug and kz == 0:
 					tmpin_plt = np.ma.masked_values(tmpin,self.xmsg)
-					plt.figure() ; plt.contourf(tmpin_plt.transpose(),40) ; plt.colorbar() ; plt.title('normalized before drown')
+					plt.figure() ; plt.contourf(tmpin_plt.transpose(),40) ; plt.colorbar() ; 
+					plt.title('normalized before drown')
 				tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 				self.nscan, self.epsx, self.relc)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
-					plt.figure() ; plt.contourf(tmpout.transpose(),40) ; plt.colorbar() ; plt.title('normalized after drown') 
+					plt.figure() ; plt.contourf(tmpout.transpose(),40) ; plt.colorbar() ; 
+					plt.title('normalized after drown') 
 		elif self.geometry == 'line':
 			tmpin = data[:,:].transpose()
 			tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
