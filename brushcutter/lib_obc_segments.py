@@ -49,8 +49,6 @@ class obc_segment():
 		self.nx = self.imax - self.imin + 1	
 		self.ny = self.jmax - self.jmin + 1	
 
-#		self.ilist = np.arange(self.imin,self.imax+1)
-#		self.jlist = np.arange(self.jmin,self.jmax+1)
 		self.ilist = np.empty((self.ny,self.nx))
 		self.jlist = np.empty((self.ny,self.nx))
 
@@ -63,6 +61,7 @@ class obc_segment():
 		# MOM6 has all T,U,V points in one big grid, ROMS has in 3 separate ones.
 		if target_model == 'MOM6':
 			coord_names=["x", "y"]
+			self.angle_dx = ncdf.read_field(target_grid_file,'angle_dx')
 		elif target_model == 'ROMS':
 			coord_names=["lon_rho", "lat_rho"]
 
@@ -154,7 +153,8 @@ class obc_variable():
 		return None
 		
 	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None, \
-	                     missing_value=None,use_locstream=False,from_global=True,depthname='z',timename='time'):
+	                     missing_value=None,use_locstream=False,from_global=True,depthname='z', \
+	                     timename='time'):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -180,7 +180,7 @@ class obc_variable():
 		except:
 			print('input data time variable not read')
 		if self.geometry == 'surface':
-			self.depth, self.nz = ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
+			self.depth, self.nz, self.dz = ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
 		# 2. perform extrapolation over land
 		if drown is True:
 			# 2.1 read mask or compute it
@@ -206,6 +206,7 @@ class obc_variable():
 		# 3. ESMF interpolation
 		# Create source grid
 		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC,is_sphere=from_global)
+		self.gridsrc = gridsrc
 		# Create a field on the centers of the grid
 		field_src = ESMF.Field(gridsrc, staggerloc=ESMF.StaggerLoc.CENTER)
 		# Create a field on the centers of the grid
@@ -243,8 +244,22 @@ class obc_variable():
 				self.data[:,:] = field_target.data.transpose()
 			else:
 				self.data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
-		
 		return None
+		
+#		# vector correction
+#		if vector == 'U':
+#			if self.geometry == 'surface':
+#				for kz in np.arange(self.nz):
+#					self.data[kz,:,:] = self.data[kz,:,:] * np.cos(self.angle_dx)
+#			elif self.geometry == 'line':
+#					self.data[:,:] = self.data[:,:] * np.cos(self.angle_dx)
+#		if vector == 'V':
+#			if self.geometry == 'surface':
+#				for kz in np.arange(self.nz):
+#					self.data[kz,:,:] = self.data[kz,:,:] * np.sin(self.angle_dx)
+#			elif self.geometry == 'line':
+#					self.data[:,:] = self.data[:,:] * np.sin(self.angle_dx)
+#		return None
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
 		''' compute mask from missing value :

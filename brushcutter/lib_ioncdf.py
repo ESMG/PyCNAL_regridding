@@ -43,13 +43,21 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 	# define variables
 	ncvariables = []
 	ncvariables_vc = []
+	ncvariables_dz = []
+	list_variables_with_vc = []
+
 	for variable in list_variables:
-		ncvar = fid.createVariable(variable.variable_name + '_' + variable.segment_name, 'f8', variable.dimensions_name)
+		ncvar = fid.createVariable(variable.variable_name + '_' + variable.segment_name, 'f8', \
+		variable.dimensions_name)
 		ncvariables.append(ncvar)
 		if variable.geometry == 'surface':
+			list_variables_with_vc.append(variable)
 			ncvar_vc = fid.createVariable('vc_' + variable.variable_name + '_' + variable.segment_name, 'f8', \
 			variable.dimensions_name)
 			ncvariables_vc.append(ncvar_vc)
+			ncvar_dz = fid.createVariable('dz_' + variable.variable_name + '_' + variable.segment_name, 'f8', \
+			variable.dimensions_name)
+			ncvariables_dz.append(ncvar_dz)
 
 
 	# fill time and coordinates
@@ -64,8 +72,10 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 	# fill variables
 	for nvar in np.arange(len(list_variables)):
 		ncvariables[nvar][0,:] = list_variables[nvar].data
-		if list_variables[nvar].geometry == 'surface':
-			ncvariables_vc[nvar][0,:] = list_variables[nvar].depth # rename to vc
+
+	for nvar in np.arange(len(list_variables_with_vc)):
+		ncvariables_vc[nvar][0,:] = list_variables_with_vc[nvar].depth 
+		ncvariables_dz[nvar][0,:] = list_variables_with_vc[nvar].dz 
 
 	# close file
 	fid.close()
@@ -92,7 +102,12 @@ def read_vert_coord(file_name,vc_name,nx,ny):
 				vc[:,ky,kx] = vc_in
 	else:
 		vc = vc_in
-	return vc, nz
+	# compute layer thickness
+	dz = np.empty((nz,ny,nx))
+	dz[:-1,:,:] = vc[1:,:,:] - vc[:-1,:,:]
+	# test if bounds exist first (to do), else
+	dz[-1,:,:] = dz[-2,:,:]
+	return vc, nz, dz
 
 def read_time(file_name,time_name='time',frame=0):
 	''' read time from the input file '''
