@@ -56,11 +56,10 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 	nctime[:] = time_point.data
 
 	for nseg in np.arange(len(list_segments)):
-		ncsegments_lon[nseg][0,:] = list_segments[nseg].lon
-		ncsegments_lat[nseg][0,:] = list_segments[nseg].lat
-		ncsegments_ilist[nseg][0,:] = list_segments[nseg].ilist
-#		print(list_segments[nseg].jlist.shape)
-		ncsegments_jlist[nseg][0,:] = list_segments[nseg].jlist
+		ncsegments_lon[nseg][:] = list_segments[nseg].lon
+		ncsegments_lat[nseg][:] = list_segments[nseg].lat
+		ncsegments_ilist[nseg][:] = list_segments[nseg].ilist
+		ncsegments_jlist[nseg][:] = list_segments[nseg].jlist
 
 	# fill variables
 	for nvar in np.arange(len(list_variables)):
