@@ -139,16 +139,16 @@ class obc_variable():
 	def allocate(self):
 		''' Allocate the output array '''
 		if self.geometry == 'surface':
-			self.data = np.empty((self.nz,self.ny,self.nx))
+			data = np.empty((self.nz,self.ny,self.nx))
 		elif self.geometry == 'line':
-			self.data = np.empty((self.ny,self.nx))
-		return None
+			data = np.empty((self.ny,self.nx))
+		return data
 
 	def set_constant_value(self,value,depth_vector=None):
 		''' Set constant value to field '''
 		if depth_vector is not None:
 			self.nz = depth.vector.shape[0]
-		self.allocate()
+		self.data = self.allocate()
 		self.data[:] = value
 		return None
 		
@@ -183,24 +183,7 @@ class obc_variable():
 			self.depth, self.nz, self.dz = ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
 		# 2. perform extrapolation over land
 		if drown is True:
-			# 2.1 read mask or compute it
-			if maskfile is not None:
-				mask = ncdf.read_field(maskfile,maskvar)
-			else:
-				mask = self.compute_mask_from_missing_value(datasrc,missing_value=missing_value)
-			# 2.2 mask the source data
-			datasrc[np.where(mask == 0)] = self.xmsg
-			datamin = datasrc[np.where(mask == 1)].min()
-			datamax = datasrc[np.where(mask == 1)].max()
-			if self.debug:
-				datasrc_plt = np.ma.masked_values(datasrc,self.xmsg)
-				plt.figure() ; plt.contourf(datasrc_plt[0,:,:],40) ; plt.title('original') ; plt.colorbar() 
-			# 2.3 perform land extrapolation on reduced variable
-			datanorm = self.normalize(datasrc,datamin,datamax,mask)
-			if self.debug:
-				print(datanorm.min() , datanorm.max(), datamin, datamax)
-			datanormextrap = self.drown_field(datanorm)
-			dataextrap = self.unnormalize(datanormextrap,datamin,datamax)
+			dataextrap = self.perform_extrapolation(datasrc,maskfile,maskvar,missing_value)
 		else:
 			dataextrap = datasrc.copy()
 		# 3. ESMF interpolation
@@ -218,32 +201,7 @@ class obc_variable():
 		regridme = ESMF.Regrid(field_src, field_target,
 	                        regrid_method=ESMF.RegridMethod.BILINEAR)
 
-		self.allocate()
-		if self.geometry == 'surface':
-			for kz in np.arange(self.nz):
-				field_src.data[:] = dataextrap[kz,:,:].transpose()
-				field_target = regridme(field_src, field_target)
-				if use_locstream:
-					if self.nx == 1:
-						self.data[kz,:,0] = field_target.data.copy()
-					elif self.ny == 1:
-						self.data[kz,0,:] = field_target.data.copy()
-				else:
-					self.data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1, \
-					                                                  self.imin:self.imax+1]
-					if self.debug and kz == 0:
-						data_target_plt = np.ma.masked_values(self.data[0,:,:],self.xmsg)
-						#data_target_plt = np.ma.masked_values(field_target.data,self.xmsg)
-						plt.figure() ; plt.contourf(data_target_plt[:,:],40) ; plt.colorbar() ; 
-						plt.title('regridded') ; plt.show()
-		elif self.geometry == 'line':
-			field_src.data[:] = dataextrap[:,:].transpose()
-			field_target = regridme(field_src, field_target)
-			if use_locstream:
-				# TODO check
-				self.data[:,:] = field_target.data.transpose()
-			else:
-				self.data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
+		self.data = self.perform_interpolation(dataextrap,regridme,field_src,field_target,use_locstream)
 		return None
 		
 #		# vector correction
@@ -281,6 +239,28 @@ class obc_variable():
 			plt.figure() ; plt.contourf(mask[0,:,:],[0.99,1.01]) ; plt.colorbar() ; plt.title('land sea mask')
 		return mask
 
+	def perform_extrapolation(self,datasrc,maskfile,maskvar,missing_value):
+		# 2.1 read mask or compute it
+		if maskfile is not None:
+			mask = ncdf.read_field(maskfile,maskvar)
+		else:
+			mask = self.compute_mask_from_missing_value(datasrc,missing_value=missing_value)
+		# 2.2 mask the source data
+		datasrc[np.where(mask == 0)] = self.xmsg
+		datamin = datasrc[np.where(mask == 1)].min()
+		datamax = datasrc[np.where(mask == 1)].max()
+		if self.debug:
+			datasrc_plt = np.ma.masked_values(datasrc,self.xmsg)
+			plt.figure() ; plt.contourf(datasrc_plt[0,:,:],40) ; plt.title('original') ; plt.colorbar() 
+		# 2.3 perform land extrapolation on reduced variable
+		datanorm = self.normalize(datasrc,datamin,datamax,mask)
+		if self.debug:
+			print(datanorm.min() , datanorm.max(), datamin, datamax)
+		datanormextrap = self.drown_field(datanorm)
+		dataextrap = self.unnormalize(datanormextrap,datamin,datamax)
+		return dataextrap
+
+
 	def drown_field(self,data):
 		''' drown_field is a wrapper around the fortran code fill_msg_grid.
 		depending on the output geometry, applies land extrapolation on 1 or N levels'''
@@ -314,3 +294,33 @@ class obc_variable():
 		''' return back to original range of values '''
 		data = datamin + datanorm * (datamax - datamin)
 		return data
+
+	def perform_interpolation(self,dataextrap,regridme,field_src,field_target,use_locstream):
+		data = self.allocate()
+		if self.geometry == 'surface':
+			for kz in np.arange(self.nz):
+				field_src.data[:] = dataextrap[kz,:,:].transpose()
+				field_target = regridme(field_src, field_target)
+				if use_locstream:
+					if self.nx == 1:
+						data[kz,:,0] = field_target.data.copy()
+					elif self.ny == 1:
+						data[kz,0,:] = field_target.data.copy()
+				else:
+					data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1, \
+					                                             self.imin:self.imax+1]
+					if self.debug and kz == 0:
+						data_target_plt = np.ma.masked_values(self.data[0,:,:],self.xmsg)
+						#data_target_plt = np.ma.masked_values(field_target.data,self.xmsg)
+						plt.figure() ; plt.contourf(data_target_plt[:,:],40) ; plt.colorbar() ; 
+						plt.title('regridded') ; plt.show()
+		elif self.geometry == 'line':
+			field_src.data[:] = dataextrap[:,:].transpose()
+			field_target = regridme(field_src, field_target)
+			if use_locstream:
+				# TODO check
+				data[:,:] = field_target.data.transpose()
+			else:
+				data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
+		return data
+
