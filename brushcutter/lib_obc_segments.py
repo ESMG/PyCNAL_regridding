@@ -144,25 +144,66 @@ class obc_variable():
 			data = np.empty((self.ny,self.nx))
 		return data
 
+	def depth_dz_from_vector(self,depth_vector):
+		self.nz = depth_vector.shape[0]
+		self.depth = np.empty((self.nz,self.ny,self.nx))
+		for ky in np.arange(self.ny):
+			for kx in np.arange(self.nx):
+				self.depth[:,ky,kx] = depth_vector
+		# compute layer thickness
+		self.dz = np.empty((self.nz,self.ny,self.nx))
+		self.dz[:-1,:,:] = self.depth[1:,:,:] - self.depth[:-1,:,:]
+		# test if bounds exist first (to do), else
+		self.dz[-1,:,:] = self.dz[-2,:,:]
+		return None
+
 	def set_constant_value(self,value,depth_vector=None):
 		''' Set constant value to field '''
 		if depth_vector is not None:
-			self.nz = depth_vector.shape[0]
+			self.depth_dz_from_vector(depth_vector)
 		self.data = self.allocate()
 		self.data[:] = value
+
 		return None
 
-	def set_vertical_profile(self,topvalue,bottomvalue,shape='linear',depth_vector=None)
+	def set_vertical_profile(self,top_value,bottom_value,shape='linear',depth_vector=None):
 		''' create a vertical profile '''
 		if depth_vector is not None:
-			self.nz = depth.vector_shape[0]
+			self.depth_dz_from_vector(depth_vector)
 		self.data = self.allocate()
 		if shape == 'linear':
-			slope = ( topvalue - bottomvalue) / (depth_vector[0] - depth_vector[-1])
-		for kz in np.arange(self.nz):
-			self.data[kz,:,:] = bottom_value + slope * (depth_vector[kz] - depth_vector[0])
+			slope = ( top_value - bottom_value) / (depth_vector[0] - depth_vector[-1])
+			for kz in np.arange(self.nz):
+				self.data[kz,:,:] = bottom_value + slope * (depth_vector[kz] - depth_vector[-1])
+
 		return None
-		
+
+	def set_horizontal_shear(self,value_1,value_n,shape='linear',direction='x',depth_vector=None):
+		if depth_vector is not None:
+			self.depth_dz_from_vector(depth_vector)
+		self.data = self.allocate()
+		if shape == 'linear':
+			if direction == 'x':
+				dx = (value_n - value_1) / self.nx
+				if depth_vector is not None:
+					for kz in np.arange(self.nz):
+						for ky in np.arange(self.ny):
+							self.data[kz,ky,:] = np.arange(value_1,value_n,dx)
+				else:
+					for ky in np.arange(self.ny):
+						self.data[ky,:] = np.arange(value_1,value_n,dx)
+			if direction == 'y':
+				dy = (value_n - value_1) / self.ny
+				if depth_vector is not None:
+					for kz in np.arange(self.nz):
+						for kx in np.arange(self.nx):
+							self.data[kz,:,kx] = np.arange(value_1,value_n,dy)
+				else:
+					for kx in np.arange(self.nx):
+						self.data[:,kx] = np.arange(value_1,value_n,dy)
+
+		return None
+
 	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None, \
 	                     missing_value=None,use_locstream=False,from_global=True,depthname='z', \
 	                     timename='time'):
