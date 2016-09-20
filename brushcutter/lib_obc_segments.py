@@ -147,9 +147,20 @@ class obc_variable():
 	def set_constant_value(self,value,depth_vector=None):
 		''' Set constant value to field '''
 		if depth_vector is not None:
-			self.nz = depth.vector.shape[0]
+			self.nz = depth_vector.shape[0]
 		self.data = self.allocate()
 		self.data[:] = value
+		return None
+
+	def set_vertical_profile(self,topvalue,bottomvalue,shape='linear',depth_vector=None)
+		''' create a vertical profile '''
+		if depth_vector is not None:
+			self.nz = depth.vector_shape[0]
+		self.data = self.allocate()
+		if shape == 'linear':
+			slope = ( topvalue - bottomvalue) / (depth_vector[0] - depth_vector[-1])
+		for kz in np.arange(self.nz):
+			self.data[kz,:,:] = bottom_value + slope * (depth_vector[kz] - depth_vector[0])
 		return None
 		
 	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None, \
