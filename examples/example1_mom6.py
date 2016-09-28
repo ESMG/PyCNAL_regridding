@@ -1,5 +1,8 @@
 from brushcutter import lib_obc_segments as los
+from brushcutter import lib_obc_variable as lov
 from brushcutter import lib_ioncdf as ncdf
+import sys
+import ConfigParser
 
 # make sure ocean_hgrid has GRIDSPEC compliant units, here :
 #cp ocean_hgrid.nc ocean_hgrid_v2.nc
@@ -7,28 +10,38 @@ from brushcutter import lib_ioncdf as ncdf
 #ncatted -a units,x,m,c,degree_east ocean_hgrid_v2.nc
 
 # ---------- path to grid and WOA T/S data ---------------------
-woadir = '/Users/raphael/STORAGE/WOA13/'
+# read information in files.path file for user given in arg
+
+this_user = sys.argv[-1]
+config = ConfigParser.ConfigParser()
+config.read('files.path')
+try:
+	for item in config.options(this_user):
+		exec(item + ' = config.get(this_user,item)')
+except:
+	exit('Please provide the id from files.path you want to use')
+
 woatemp = 'temp_WOA13-CM2.1_monthly.nc'
 woasalt = 'salt_WOA13-CM2.1_monthly.nc'
-momgrd = '/Users/raphael/STORAGE/MOM6/ocean_hgrid_v2.nc'
+momgrd = 'ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
-south = los.obc_segment('segment_001',momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
-north = los.obc_segment('segment_002',momgrd,imin=0,imax=360,jmin=960,jmax=960)
-west  = los.obc_segment('segment_003',momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
+south = los.obc_segment('segment_001',momdir + momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
+north = los.obc_segment('segment_002',momdir + momgrd,imin=0,imax=360,jmin=960,jmax=960)
+west  = los.obc_segment('segment_003',momdir + momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
 
 # ---------- define variables on each segment ------------------
-temp_south = los.obc_variable(south,'temp',geometry='surface',obctype='radiation')
-temp_north = los.obc_variable(north,'temp',geometry='surface',obctype='radiation')
-temp_west  = los.obc_variable(west, 'temp',geometry='surface',obctype='radiation')
+temp_south = lov.obc_variable(south,'temp',geometry='surface',obctype='radiation')
+temp_north = lov.obc_variable(north,'temp',geometry='surface',obctype='radiation')
+temp_west  = lov.obc_variable(west, 'temp',geometry='surface',obctype='radiation')
 
-salt_south = los.obc_variable(south,'salt',geometry='surface',obctype='radiation')
-salt_north = los.obc_variable(north,'salt',geometry='surface',obctype='radiation')
-salt_west  = los.obc_variable(west, 'salt',geometry='surface',obctype='radiation')
+salt_south = lov.obc_variable(south,'salt',geometry='surface',obctype='radiation')
+salt_north = lov.obc_variable(north,'salt',geometry='surface',obctype='radiation')
+salt_west  = lov.obc_variable(west, 'salt',geometry='surface',obctype='radiation')
 
-zeta_south = los.obc_variable(south,'zeta',geometry='line',obctype='flather')
-zeta_north = los.obc_variable(north,'zeta',geometry='line',obctype='flather')
-zeta_west  = los.obc_variable(west ,'zeta',geometry='line',obctype='flather')
+zeta_south = lov.obc_variable(south,'zeta',geometry='line',obctype='flather')
+zeta_north = lov.obc_variable(north,'zeta',geometry='line',obctype='flather')
+zeta_west  = lov.obc_variable(west ,'zeta',geometry='line',obctype='flather')
 
 # ---------- interpolate T/S from WOA monthly file, frame = 0 (jan) and using locstream (x2 speedup)
 temp_south.interpolate_from(woadir + woatemp,'temp',frame=0,depthname='st_ocean',use_locstream=True)

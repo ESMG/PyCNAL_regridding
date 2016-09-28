@@ -1,38 +1,52 @@
 from brushcutter import lib_obc_segments as los
+from brushcutter import lib_obc_variable as lov
 from brushcutter import lib_ioncdf as ncdf
 from brushcutter import lib_timemanager as ltim
 import numpy as np
+import sys
+import ConfigParser
 
 # this example demonstrate how to make analytical obc
 
 # ---------- path to grid and WOA T/S data ---------------------
+# read information in files.path file for user given in arg
+
+this_user = sys.argv[-1]
+config = ConfigParser.ConfigParser()
+config.read('files.path')
+try:
+	for item in config.options(this_user):
+		exec(item + ' = config.get(this_user,item)')
+except:
+	exit('Please provide the id from files.path you want to use')
+
 momgrd = 'ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
-south = los.obc_segment('segment_001',momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
-north = los.obc_segment('segment_002',momgrd,imin=0,imax=360,jmin=960,jmax=960)
-west  = los.obc_segment('segment_003',momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
+south = los.obc_segment('segment_001',momdir + momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
+north = los.obc_segment('segment_002',momdir + momgrd,imin=0,imax=360,jmin=960,jmax=960)
+west  = los.obc_segment('segment_003',momdir + momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
 
 # ---------- define variables on each segment ------------------
-temp_south = los.obc_variable(south,'temp',geometry='surface',obctype='radiation')
-temp_north = los.obc_variable(north,'temp',geometry='surface',obctype='radiation')
-temp_west  = los.obc_variable(west, 'temp',geometry='surface',obctype='radiation')
+temp_south = lov.obc_variable(south,'temp',geometry='surface',obctype='radiation')
+temp_north = lov.obc_variable(north,'temp',geometry='surface',obctype='radiation')
+temp_west  = lov.obc_variable(west, 'temp',geometry='surface',obctype='radiation')
 
-salt_south = los.obc_variable(south,'salt',geometry='surface',obctype='radiation')
-salt_north = los.obc_variable(north,'salt',geometry='surface',obctype='radiation')
-salt_west  = los.obc_variable(west, 'salt',geometry='surface',obctype='radiation')
+salt_south = lov.obc_variable(south,'salt',geometry='surface',obctype='radiation')
+salt_north = lov.obc_variable(north,'salt',geometry='surface',obctype='radiation')
+salt_west  = lov.obc_variable(west, 'salt',geometry='surface',obctype='radiation')
 
-u_south = los.obc_variable(south,'u',geometry='surface',obctype='radiation')
-u_north = los.obc_variable(north,'u',geometry='surface',obctype='radiation')
-u_west  = los.obc_variable(west, 'u',geometry='surface',obctype='radiation')
+u_south = lov.obc_variable(south,'u',geometry='surface',obctype='radiation')
+u_north = lov.obc_variable(north,'u',geometry='surface',obctype='radiation')
+u_west  = lov.obc_variable(west, 'u',geometry='surface',obctype='radiation')
 
-v_south = los.obc_variable(south,'v',geometry='surface',obctype='radiation')
-v_north = los.obc_variable(north,'v',geometry='surface',obctype='radiation')
-v_west  = los.obc_variable(west, 'v',geometry='surface',obctype='radiation')
+v_south = lov.obc_variable(south,'v',geometry='surface',obctype='radiation')
+v_north = lov.obc_variable(north,'v',geometry='surface',obctype='radiation')
+v_west  = lov.obc_variable(west, 'v',geometry='surface',obctype='radiation')
 
-zeta_south = los.obc_variable(south,'zeta',geometry='line',obctype='flather')
-zeta_north = los.obc_variable(north,'zeta',geometry='line',obctype='flather')
-zeta_west  = los.obc_variable(west ,'zeta',geometry='line',obctype='flather')
+zeta_south = lov.obc_variable(south,'zeta',geometry='line',obctype='flather')
+zeta_north = lov.obc_variable(north,'zeta',geometry='line',obctype='flather')
+zeta_west  = lov.obc_variable(west ,'zeta',geometry='line',obctype='flather')
 
 # ---------- define vertical axis (here from WOA, but could be anything)
 depth_woa = np.array([5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125, 135, 145, 
