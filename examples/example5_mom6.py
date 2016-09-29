@@ -76,6 +76,7 @@ for kt in np.arange(12):
 
 	#----------- time --------------------------------------------
 	time = temp_south.timesrc
+	time.calendar = 'gregorian'
 
 	# ---------- write to file -----------------------------------
 	ncdf.write_obc_file(list_segments,list_variables,time,output='obc_woa13_m' + mm + '_CCS1.nc')

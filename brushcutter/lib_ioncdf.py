@@ -25,6 +25,7 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 	# define time and coordinates
 	nctime = fid.createVariable('time','f8',('time',))
 	nctime.units = time_point.units
+	nctime.calendar = time_point.calendar
 
 	ncsegments_lon = []
 	ncsegments_lat = []
