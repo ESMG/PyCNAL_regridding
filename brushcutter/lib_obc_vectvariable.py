@@ -44,9 +44,12 @@ class obc_vectvariable():
 
 		# boundary geometry
 		if self.geometry == 'line':
-			self.dimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
+			self.dimensions_name_u = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
+			self.dimensions_name_v = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
 		elif self.geometry == 'surface':
-			self.dimensions_name = ('time','nz_' + self.segment_name + '_' + self.variable_name, \
+			self.dimensions_name_u = ('time','nz_' + self.segment_name + '_' + self.variable_name_u, \
+			'ny_' + self.segment_name,'nx_' + self.segment_name,)
+			self.dimensions_name_v = ('time','nz_' + self.segment_name + '_' + self.variable_name_v, \
 			'ny_' + self.segment_name,'nx_' + self.segment_name,)
 
 
@@ -71,7 +74,7 @@ class obc_vectvariable():
 	def set_constant_value(self,value_u,value_v,depth_vector=None):
 		''' Set constant value to field '''
 		if depth_vector is not None:
-			self.nz = depth.vector.shape[0]
+			self.depth_dz_from_vector(depth_vector)
 		self.data_u_out = self.allocate()
 		self.data_v_out = self.allocate()
 		self.data_u_out[:] = value_u
@@ -250,3 +253,15 @@ class obc_vectvariable():
 				data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
 		return data
 
+	def depth_dz_from_vector(self,depth_vector):
+		self.nz = depth_vector.shape[0]
+		self.depth = np.empty((self.nz,self.ny,self.nx))
+		for ky in np.arange(self.ny):
+			for kx in np.arange(self.nx):
+				self.depth[:,ky,kx] = depth_vector
+		# compute layer thickness
+		self.dz = np.empty((self.nz,self.ny,self.nx))
+		self.dz[:-1,:,:] = self.depth[1:,:,:] - self.depth[:-1,:,:]
+		# test if bounds exist first (to do), else
+		self.dz[-1,:,:] = self.dz[-2,:,:]
+		return None

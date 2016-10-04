@@ -2,7 +2,7 @@ import netCDF4 as nc
 import numpy as np 
 
 # we create some velocity on the same grid as CM2.1
-indir = '/home/raphael/WORK/work_brushcutter/'
+indir = '/Volumes/P4/workdir/raphael/work_brushcutter/'
 fcm = 'temp_WOA13-CM2.1_monthly.nc'
 
 # read stuff from input WOA

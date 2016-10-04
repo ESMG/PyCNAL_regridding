@@ -74,12 +74,14 @@ for kt in np.arange(12):
 	                  salt_south,salt_north,salt_west, \
 	                  zeta_south,zeta_north,zeta_west ]
 
+	list_vectvariables = []
+
 	#----------- time --------------------------------------------
 	time = temp_south.timesrc
 	time.calendar = 'gregorian'
 
 	# ---------- write to file -----------------------------------
-	ncdf.write_obc_file(list_segments,list_variables,time,output='obc_woa13_m' + mm + '_CCS1.nc')
+	ncdf.write_obc_file(list_segments,list_variables,list_vectvariables,time,output='obc_woa13_m' + mm + '_CCS1.nc')
 
 # ---------- concat to a single file ---------------------------------
 cmdcat = 'ncrcat obc_woa13_m??_CCS1.nc -o obc_woa13_monthly_CCS1.nc'

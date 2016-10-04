@@ -21,8 +21,8 @@ try:
 except:
 	exit('Please provide the id from files.path you want to use')
 
-woatemp = 'temp_WOA13-CM2.1_monthly.nc'
-woasalt = 'salt_WOA13-CM2.1_monthly.nc'
+woatemp = 'temp_WOA13-CM2.1_monthly_CCS.nc'
+woasalt = 'salt_WOA13-CM2.1_monthly_CCS.nc'
 momgrd = 'ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
@@ -41,8 +41,10 @@ list_segments = [domain]
 
 list_variables = [temp_domain,salt_domain] 
 
+list_vectvariables = []
+
 #----------- time --------------------------------------------
 time = temp_domain.timesrc
 
 # ---------- write to file -----------------------------------
-ncdf.write_obc_file(list_segments,list_variables,time,output='clim_woa13_m01_from_regional.nc')
+ncdf.write_obc_file(list_segments,list_variables,list_vectvariables,time,output='clim_woa13_m01_from_regional.nc')

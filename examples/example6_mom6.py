@@ -92,8 +92,10 @@ list_variables = [temp_south ,temp_north,temp_west, \
                   u_south,u_north,u_west, \
                   v_south,v_north,v_west ]
 
+list_vectvariables = []
+
 #----------- time --------------------------------------------
 time = ltim.timeobject()
 
 # ---------- write to file -----------------------------------
-ncdf.write_obc_file(list_segments,list_variables,time,output='obc_analytical.nc')
+ncdf.write_obc_file(list_segments,list_variables,list_vectvariables,time,output='obc_analytical.nc')

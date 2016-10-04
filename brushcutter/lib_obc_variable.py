@@ -26,6 +26,7 @@ class obc_variable():
 
 		'''
 
+		self.vector = False
 		# read args 
 		self.variable_name = variable_name
 		self.items = []

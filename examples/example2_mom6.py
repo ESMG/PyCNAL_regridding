@@ -64,8 +64,10 @@ list_variables = [temp_south,temp_north,temp_west, \
                   salt_south,salt_north,salt_west, \
                   zeta_south,zeta_north,zeta_west ]
 
+list_vectvariables = []
+
 #----------- time --------------------------------------------
 time = temp_south.timesrc
 
 # ---------- write to file -----------------------------------
-ncdf.write_obc_file(list_segments,list_variables,time,output='obc_woa13_m01_from_regional.nc')
+ncdf.write_obc_file(list_segments,list_variables,list_vectvariables,time,output='obc_woa13_m01_from_regional.nc')

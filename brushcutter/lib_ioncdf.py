@@ -2,7 +2,7 @@ import netCDF4 as nc
 import numpy as np
 from brushcutter import lib_timemanager as tim
 
-def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
+def write_obc_file(list_segments,list_variables,list_vectvariables,time_point,output='out.nc'):
 	''' write an open boundary condition file from a list
 	of segments and associated variables '''
 
@@ -20,6 +20,10 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 	for variable in list_variables:
 		if (variable.geometry == 'surface'):
 			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name, variable.nz)
+	for variable in list_vectvariables:
+		if (variable.geometry == 'surface'):
+			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name_u, variable.nz)
+			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name_v, variable.nz)
 
 
 	# define time and coordinates
@@ -60,6 +64,36 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 			variable.dimensions_name)
 			ncvariables_dz.append(ncvar_dz)
 
+	# define variables
+	ncvectvariables = []
+	ncvectvariables_vc = []
+	ncvectvariables_dz = []
+	list_vectvariables_with_vc = []
+
+	for variable in list_vectvariables:
+		ncvar = fid.createVariable(variable.variable_name_u + '_' + variable.segment_name, 'f8', \
+		variable.dimensions_name_u)
+		ncvectvariables.append(ncvar)
+		ncvar = fid.createVariable(variable.variable_name_v + '_' + variable.segment_name, 'f8', \
+		variable.dimensions_name_v)
+		ncvectvariables.append(ncvar)
+
+		if variable.geometry == 'surface':
+			list_vectvariables_with_vc.append(variable)
+
+			ncvar_vc = fid.createVariable('vc_' + variable.variable_name_u + '_' + variable.segment_name, 'f8', \
+			variable.dimensions_name_u)
+			ncvectvariables_vc.append(ncvar_vc)
+			ncvar_vc = fid.createVariable('vc_' + variable.variable_name_v + '_' + variable.segment_name, 'f8', \
+			variable.dimensions_name_v)
+			ncvectvariables_vc.append(ncvar_vc)
+
+			ncvar_dz = fid.createVariable('dz_' + variable.variable_name_u + '_' + variable.segment_name, 'f8', \
+			variable.dimensions_name_u)
+			ncvectvariables_dz.append(ncvar_dz)
+			ncvar_dz = fid.createVariable('dz_' + variable.variable_name_v + '_' + variable.segment_name, 'f8', \
+			variable.dimensions_name_v)
+			ncvectvariables_dz.append(ncvar_dz)
 
 	# fill time and coordinates
 	nctime[:] = time_point.data
@@ -77,6 +111,17 @@ def write_obc_file(list_segments,list_variables,time_point,output='out.nc'):
 	for nvar in np.arange(len(list_variables_with_vc)):
 		ncvariables_vc[nvar][0,:] = list_variables_with_vc[nvar].depth 
 		ncvariables_dz[nvar][0,:] = list_variables_with_vc[nvar].dz 
+
+	# fill vect variables
+	for nvar in np.arange(len(list_vectvariables)):
+		ncvectvariables[2*nvar][0,:]   = list_vectvariables[nvar].data_u_out
+		ncvectvariables[2*nvar+1][0,:] = list_vectvariables[nvar].data_v_out
+
+	for nvar in np.arange(len(list_vectvariables_with_vc)):
+		ncvectvariables_vc[2*nvar][0,:]   = list_vectvariables_with_vc[nvar].depth 
+		ncvectvariables_vc[2*nvar+1][0,:] = list_vectvariables_with_vc[nvar].depth 
+		ncvectvariables_dz[2*nvar][0,:]   = list_vectvariables_with_vc[nvar].dz 
+		ncvectvariables_dz[2*nvar+1][0,:] = list_vectvariables_with_vc[nvar].dz 
 
 	# close file
 	fid.close()
