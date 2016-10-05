@@ -81,7 +81,7 @@ class obc_vectvariable():
 		self.data_v_out[:] = value_v
 		return None
 		
-	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None, \
+	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown=True,maskfile=None,maskvar=None, \
 	                     missing_value=None,use_locstream=False,from_global=True,depthname='z', \
 	                     timename='time'):
 		''' interpolate_from performs a serie of operation :
@@ -103,18 +103,24 @@ class obc_vectvariable():
 		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
 		# 1. read the original field
-		datasrc = ncdf.read_field(filename,variable,frame=frame)
+		datasrc_u = ncdf.read_field(filename,variable_u,frame=frame)
+		datasrc_v = ncdf.read_field(filename,variable_v,frame=frame)
 		try:
 			self.timesrc = ncdf.read_time(filename,timename,frame=frame)
 		except:
 			print('input data time variable not read')
 		if self.geometry == 'surface':
 			self.depth, self.nz, self.dz = ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
+
+		# TODO !! make rotation to east,north from source grid.
+
 		# 2. perform extrapolation over land
 		if drown is True:
-			dataextrap = self.perform_extrapolation(datasrc,maskfile,maskvar,missing_value)
+			dataextrap_u = self.perform_extrapolation(datasrc_u,maskfile,maskvar,missing_value)
+			dataextrap_v = self.perform_extrapolation(datasrc_v,maskfile,maskvar,missing_value)
 		else:
-			dataextrap = datasrc.copy()
+			dataextrap_u = datasrc_u.copy()
+			dataextrap_v = datasrc_v.copy()
 		# 3. ESMF interpolation
 		# Create source grid
 		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC,is_sphere=from_global)
@@ -130,23 +136,15 @@ class obc_vectvariable():
 		regridme = ESMF.Regrid(field_src, field_target,
 	                        regrid_method=ESMF.RegridMethod.BILINEAR)
 
-		self.data = self.perform_interpolation(dataextrap,regridme,field_src,field_target,use_locstream)
+		self.data_u = self.perform_interpolation(dataextrap_u,regridme,field_src,field_target,use_locstream)
+		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,field_target,use_locstream)
+
+		# vector rotation to output grid
+		self.data_u_out = self.data_u * np.cos(self.angle_dx) + \
+		                  self.data_v * np.sin(self.angle_dx)
+		self.data_v_out = self.data_v * np.cos(self.angle_dx) - \
+		                  self.data_u * np.sin(self.angle_dx) 
 		return None
-		
-#		# vector correction
-#		if vector == 'U':
-#			if self.geometry == 'surface':
-#				for kz in np.arange(self.nz):
-#					self.data[kz,:,:] = self.data[kz,:,:] * np.cos(self.angle_dx)
-#			elif self.geometry == 'line':
-#					self.data[:,:] = self.data[:,:] * np.cos(self.angle_dx)
-#		if vector == 'V':
-#			if self.geometry == 'surface':
-#				for kz in np.arange(self.nz):
-#					self.data[kz,:,:] = self.data[kz,:,:] * np.sin(self.angle_dx)
-#			elif self.geometry == 'line':
-#					self.data[:,:] = self.data[:,:] * np.sin(self.angle_dx)
-#		return None
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
 		''' compute mask from missing value :
