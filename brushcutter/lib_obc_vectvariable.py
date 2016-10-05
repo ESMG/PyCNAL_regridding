@@ -2,6 +2,7 @@ import numpy as np
 import ESMF
 from brushcutter import lib_ioncdf as ncdf
 from brushcutter import fill_msg_grid as fill
+from brushcutter import mod_utils as modu
 import matplotlib.pylab as plt
 
 class obc_vectvariable():
@@ -140,10 +141,24 @@ class obc_vectvariable():
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,field_target,use_locstream)
 
 		# vector rotation to output grid
-		self.data_u_out = self.data_u * np.cos(self.angle_dx) + \
-		                  self.data_v * np.sin(self.angle_dx)
-		self.data_v_out = self.data_v * np.cos(self.angle_dx) - \
-		                  self.data_u * np.sin(self.angle_dx) 
+		self.data_u_out = np.empty((self.nz,self.ny,self.nx))
+		self.data_v_out = np.empty((self.nz,self.ny,self.nx))
+		axis= [1,1,0]
+                self.data_u_out, self.data_v_out = modu.mod_utils.vector_rotation(axis,self.angle_dx,self.data_u,self.data_v)
+
+#               python prototype euler-rodrigues
+#		for kz in np.arange(self.nz):
+#			for ky in np.arange(self.ny):
+#				for kx in np.arange(self.nx):
+#					self.data_u_out[kz,ky,kx], self.data_v_out[kz,ky,kx], dummy = np.dot(self.rotation_matrix(axis,self.angle_dx[ky,kx]), [self.data_u[kz,ky,kx],self.data_v[kz,ky,kx],0])
+		#print(np.dot(rotation_matrix(axis,theta), v))
+
+                # what everybody else does and is wrong !
+		if self.buggedvelocities:
+			self.data_u_out = self.data_u * np.cos(self.angle_dx) - \
+			                  self.data_v * np.sin(self.angle_dx)
+			self.data_v_out = self.data_v * np.cos(self.angle_dx) + \
+			                  self.data_u * np.sin(self.angle_dx) 
 		return None
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
@@ -237,7 +252,7 @@ class obc_vectvariable():
 					data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1, \
 					                                             self.imin:self.imax+1]
 					if self.debug and kz == 0:
-						data_target_plt = np.ma.masked_values(self.data[0,:,:],self.xmsg)
+						data_target_plt = np.ma.masked_values(data[kz,:,:],self.xmsg)
 						#data_target_plt = np.ma.masked_values(field_target.data,self.xmsg)
 						plt.figure() ; plt.contourf(data_target_plt[:,:],40) ; plt.colorbar() ; 
 						plt.title('regridded') ; plt.show()
@@ -263,3 +278,20 @@ class obc_vectvariable():
 		# test if bounds exist first (to do), else
 		self.dz[-1,:,:] = self.dz[-2,:,:]
 		return None
+
+	def rotation_matrix(self,axis, theta):
+		"""
+		Return the rotation matrix associated with counterclockwise rotation about
+		the given axis by theta radians.
+		"""
+		axis = np.asarray(axis)
+		axis = axis/np.sqrt(np.dot(axis, axis))
+		a = np.cos(theta/2.0)
+		b, c, d = -axis*np.sin(theta/2.0)
+		aa, bb, cc, dd = a*a, b*b, c*c, d*d
+		bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
+		out = np.array([[aa+bb-cc-dd, 2*(bc+ad), 2*(bd-ac)],
+		[2*(bc-ad), aa+cc-bb-dd, 2*(cd+ab)],
+		[2*(bd+ac), 2*(cd-ab), aa+dd-bb-cc]])
+		return out
+
