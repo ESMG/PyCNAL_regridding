@@ -4,8 +4,6 @@ from numpy.distutils.core import setup, Extension
 fill_msg_grid    = Extension(name = 'brushcutter.fill_msg_grid',
                              sources = ['brushcutter/f90/fill_msg_grid.f90'])
 
-mod_utils        = Extension(name = 'brushcutter.mod_utils',
-                             sources = ['brushcutter/f90/mod_utils.f90'])
 setup(
     name = "brushcutter",
     version = "1.0",
@@ -16,7 +14,7 @@ setup(
     keywords = "ocean boundary conditions",
     url = "",
     packages=['brushcutter'],
-    ext_modules = [fill_msg_grid, mod_utils]
+    ext_modules = [fill_msg_grid]
 )
 
 
