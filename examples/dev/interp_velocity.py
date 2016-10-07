@@ -3,6 +3,7 @@ from brushcutter import lib_obc_vectvariable as losv
 from brushcutter import lib_timemanager as ltim
 from brushcutter import lib_ioncdf as ncdf
 import numpy as np
+import matplotlib.pylab as plt
 
 infile = 'uniform_zonal.nc'
 momgrd = '/Volumes/P4/workdir/raphael/work_brushcutter/ocean_hgrid_v2.nc'
@@ -31,3 +32,8 @@ time = ltim.timeobject()
 
 # ---------- write to file -----------------------------------
 ncdf.write_obc_file(list_segments,list_variables,list_vectvariables,time,output='interpolated_vel.nc')
+
+plt.figure()
+plt.quiver(vel_domain.lon[::40,::40],vel_domain.lat[::40,::40],vel_domain.data_u_out[0,::40,::40],vel_domain.data_v_out[0,::40,::40])
+plt.title('zonal flow in CCS coordinates')
+plt.show()
