@@ -84,7 +84,7 @@ class obc_vectvariable():
 		
 	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown=True,maskfile=None,maskvar=None, \
 	                     missing_value=None,use_locstream=False,from_global=True,depthname='z', \
-	                     timename='time'):
+	                     timename='time',coord_names=['lon','lat']):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -124,7 +124,7 @@ class obc_vectvariable():
 			dataextrap_v = datasrc_v.copy()
 		# 3. ESMF interpolation
 		# Create source grid
-		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC,is_sphere=from_global)
+		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
 		self.gridsrc = gridsrc
 		# Create a field on the centers of the grid
 		field_src = ESMF.Field(gridsrc, staggerloc=ESMF.StaggerLoc.CENTER)
@@ -141,10 +141,10 @@ class obc_vectvariable():
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,field_target,use_locstream)
 
 		# vector rotation to output grid
-		self.data_u_out = self.data_u * np.cos(self.angle_dx) + \
-		                  self.data_v * np.sin(self.angle_dx)
-		self.data_v_out = self.data_v * np.cos(self.angle_dx) - \
-		                  self.data_u * np.sin(self.angle_dx) 
+		self.data_u_out = self.data_u * np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \
+		                  self.data_v * np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1])
+		self.data_v_out = self.data_v * np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) - \
+		                  self.data_u * np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) 
 		return None
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
@@ -246,8 +246,7 @@ class obc_vectvariable():
 			field_src.data[:] = dataextrap[:,:].transpose()
 			field_target = regridme(field_src, field_target)
 			if use_locstream:
-				# TODO check
-				data[:,:] = field_target.data.transpose()
+				data[:,:] = np.reshape(field_target.data.transpose(),(self.ny,self.nx))
 			else:
 				data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
 		return data

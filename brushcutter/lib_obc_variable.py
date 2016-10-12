@@ -127,7 +127,7 @@ class obc_variable():
 
 	def interpolate_from(self,filename,variable,frame=None,drown=True,maskfile=None,maskvar=None, \
 	                     missing_value=None,use_locstream=False,from_global=True,depthname='z', \
-	                     timename='time'):
+	                     timename='time',coord_names=['lon','lat']):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -161,7 +161,7 @@ class obc_variable():
 			dataextrap = datasrc.copy()
 		# 3. ESMF interpolation
 		# Create source grid
-		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC,is_sphere=from_global)
+		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
 		self.gridsrc = gridsrc
 		# Create a field on the centers of the grid
 		field_src = ESMF.Field(gridsrc, staggerloc=ESMF.StaggerLoc.CENTER)
@@ -291,8 +291,7 @@ class obc_variable():
 			field_src.data[:] = dataextrap[:,:].transpose()
 			field_target = regridme(field_src, field_target)
 			if use_locstream:
-				# TODO check
-				data[:,:] = field_target.data.transpose()
+				data[:,:] = np.reshape(field_target.data.transpose(),(self.ny,self.nx))
 			else:
 				data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
 		return data
