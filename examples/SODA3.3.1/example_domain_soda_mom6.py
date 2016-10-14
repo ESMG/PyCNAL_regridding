@@ -2,11 +2,9 @@ from brushcutter import lib_obc_segments as los
 from brushcutter import lib_obc_variable as lov
 from brushcutter import lib_obc_vectvariable as losv
 from brushcutter import lib_ioncdf as ncdf
-import sys
-import ConfigParser
 
-sodafile = '/Volumes/P1/Data/SODA/SODA_3.3.1/soda3.3.1_5dy_ocean_reg_1980_09_29.nc'
-momgrd = '/Volumes/P4/workdir/raphael/thredds/brushcutter_files/ocean_hgrid_v2.nc'
+sodafile = '../data/soda3.3.1_5dy_ocean_reg_1980_09_29.nc'
+momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
 domain = los.obc_segment('domain', momgrd,imin=0,imax=360,jmin=0,  jmax=960)
@@ -21,7 +19,7 @@ vel_domain  = losv.obc_vectvariable(domain,'u','v',geometry='surface',obctype='r
 temp_domain.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xt_ocean','yt_ocean'])
 salt_domain.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xt_ocean','yt_ocean'])
 ssh_domain.interpolate_from(sodafile ,'ssh' ,frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xt_ocean','yt_ocean'])
-vel_domain.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xt_ocean','yt_ocean'])
+vel_domain.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xu_ocean','yu_ocean'])
 
 # ---------- list segments and variables to be written -------
 list_segments = [domain]

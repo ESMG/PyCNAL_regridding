@@ -1,34 +1,15 @@
 from brushcutter import lib_obc_segments as los
 from brushcutter import lib_obc_variable as lov
 from brushcutter import lib_ioncdf as ncdf
-import sys
-import ConfigParser
 
-# make sure ocean_hgrid has GRIDSPEC compliant units, here :
-#cp ocean_hgrid.nc ocean_hgrid_v2.nc
-#ncatted -a units,y,m,c,degree_north ocean_hgrid_v2.nc
-#ncatted -a units,x,m,c,degree_east ocean_hgrid_v2.nc
-
-# ---------- path to grid and WOA T/S data ---------------------
-# read information in files.path file for user given in arg
-
-this_user = sys.argv[-1]
-config = ConfigParser.ConfigParser()
-config.read('files.path')
-try:
-	for item in config.options(this_user):
-		exec(item + ' = config.get(this_user,item)')
-except:
-	exit('Please provide the id from files.path you want to use')
-
-woatemp = 'temp_WOA13-CM2.1_monthly_ccs.nc'
-woasalt = 'salt_WOA13-CM2.1_monthly_ccs.nc'
-momgrd = 'ocean_hgrid_v2.nc'
+woatemp = '../data/temp_WOA13-CM2.1_monthly_ccs.nc'
+woasalt = '../data/salt_WOA13-CM2.1_monthly_ccs.nc'
+momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
-south = los.obc_segment('segment_001',momdir + momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
-north = los.obc_segment('segment_002',momdir + momgrd,imin=0,imax=360,jmin=960,jmax=960)
-west  = los.obc_segment('segment_003',momdir + momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
+south = los.obc_segment('segment_001', momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
+north = los.obc_segment('segment_002', momgrd,imin=0,imax=360,jmin=960,jmax=960)
+west  = los.obc_segment('segment_003', momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
 
 # ---------- define variables on each segment ------------------
 temp_south = lov.obc_variable(south,'temp',geometry='surface',obctype='radiation')
@@ -44,13 +25,13 @@ zeta_north = lov.obc_variable(north,'zeta',geometry='line',obctype='flather')
 zeta_west  = lov.obc_variable(west ,'zeta',geometry='line',obctype='flather')
 
 # ---------- interpolate T/S from WOA monthly file, frame = 0 (jan) and using locstream (x2 speedup)
-temp_south.interpolate_from(woadir + woatemp,'temp',frame=0,depthname='st_ocean',use_locstream=True,from_global=False)
-temp_north.interpolate_from(woadir + woatemp,'temp',frame=0,depthname='st_ocean',use_locstream=True,from_global=False)
-temp_west.interpolate_from( woadir + woatemp,'temp',frame=0,depthname='st_ocean',use_locstream=True,from_global=False)
+temp_south.interpolate_from( woatemp,'temp',frame=0,depthname='st_ocean',use_locstream=True,from_global=False,coord_names=['geolon_t','geolat_t'])
+temp_north.interpolate_from( woatemp,'temp',frame=0,depthname='st_ocean',use_locstream=True,from_global=False,coord_names=['geolon_t','geolat_t'])
+temp_west.interpolate_from(  woatemp,'temp',frame=0,depthname='st_ocean',use_locstream=True,from_global=False,coord_names=['geolon_t','geolat_t'])
 
-salt_south.interpolate_from(woadir + woasalt,'salt',frame=0,depthname='st_ocean',use_locstream=True,from_global=False)
-salt_north.interpolate_from(woadir + woasalt,'salt',frame=0,depthname='st_ocean',use_locstream=True,from_global=False)
-salt_west.interpolate_from( woadir + woasalt,'salt',frame=0,depthname='st_ocean',use_locstream=True,from_global=False)
+salt_south.interpolate_from( woasalt,'salt',frame=0,depthname='st_ocean',use_locstream=True,from_global=False,coord_names=['geolon_t','geolat_t'])
+salt_north.interpolate_from( woasalt,'salt',frame=0,depthname='st_ocean',use_locstream=True,from_global=False,coord_names=['geolon_t','geolat_t'])
+salt_west.interpolate_from(  woasalt,'salt',frame=0,depthname='st_ocean',use_locstream=True,from_global=False,coord_names=['geolon_t','geolat_t'])
 
 # ---------- set constant value for SSH ----------------------
 zeta_south.set_constant_value(0.0)
