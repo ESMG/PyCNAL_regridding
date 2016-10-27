@@ -1,37 +1,35 @@
-import numpy as np
-import ESMF
-from brushcutter import lib_ioncdf as ncdf
-from brushcutter import fill_msg_grid as fill
-import matplotlib.pylab as plt
+import numpy as _np
+import ESMF as _ESMF
+from brushcutter import lib_ioncdf as _ncdf
 
 class obc_segment():
-	''' A class describing an open boundary condtion segment
-	'''
+	''' A class describing an open boundary condtion segment '''
 
 	def __init__(self,segment_name,target_grid_file,target_model='MOM6',**kwargs):
-		''' constructor of obc_segment - read target grid and create associated 
-		ESMF grid and locstream objects.
+		''' read target grid and create associated ESMF grid and locstream objects.
 
-		*** Args : 
+		Args:
+			segment_name (string): name of the segment
+			target_grid_file (netcdf file): grid file of the ocean model
+			target_model: name of the ocean model (default MOM6)
 
-		* segment_name : name of the segment, MOM6 wants segment_001,... 
-		                                      ROMS wants north, south,...
+		Examples:
+			south = obc_segment('segment_001','./ocean_hgrid.nc',imin=0,imax=360,jmin=0,jmax=0)
+                        north = obc_segment('segment_002','./ocean_hgrid.nc',imin=0,imax=360,jmin=960,jmax=960)
 
-		* target_grid_file : full path to target grid file (e.g. ocean_hgrid.nc, roms_grd.nc)
-
-		* target_model (default MOM6) : can be MOM6 or ROMS
-	
-		*** kwargs (mandatory) : 
-
-		* imin : along x axis, where the segment begins
-
-		* imax : along x axis, where the segment ends
-
-		* jmin : along y axis, where the segment begins
-
-		* jmax : along y axis, where the segment end
-
+			south = obc_segment('south','./roms_grd.nc',target_model='ROMS,'imin=0,imax=180,jmin=0,jmax=0)
+			north = obc_segment('north','./roms_grd.nc',target_model='ROMS,'imin=0,imax=180,jmin=480,jmax=480)
 		'''
+	
+#		* imin : along x axis, where the segment begins
+#
+#		* imax : along x axis, where the segment ends
+#
+#		* jmin : along y axis, where the segment begins
+#
+#		* jmax : along y axis, where the segment end
+#
+#		'''
 
 		# read args 
 		self.segment_name = segment_name
@@ -49,28 +47,28 @@ class obc_segment():
 		self.nx = self.imax - self.imin + 1	
 		self.ny = self.jmax - self.jmin + 1	
 
-		self.ilist = np.empty((self.ny,self.nx))
-		self.jlist = np.empty((self.ny,self.nx))
+		self.ilist = _np.empty((self.ny,self.nx))
+		self.jlist = _np.empty((self.ny,self.nx))
 
-		for kx in np.arange(self.nx):
-			self.jlist[:,kx] = np.arange(self.jmin,self.jmax+1) / 2.
-		for ky in np.arange(self.ny):
-			self.ilist[ky,:] = np.arange(self.imin,self.imax+1) / 2.
+		for kx in _np.arange(self.nx):
+			self.jlist[:,kx] = _np.arange(self.jmin,self.jmax+1) / 2.
+		for ky in _np.arange(self.ny):
+			self.ilist[ky,:] = _np.arange(self.imin,self.imax+1) / 2.
 
 		# coordinate names depend on ocean model
 		# MOM6 has all T,U,V points in one big grid, ROMS has in 3 separate ones.
 		if target_model == 'MOM6':
 			coord_names=["x", "y"]
-			self.angle_dx = ncdf.read_field(target_grid_file,'angle_dx')
+			self.angle_dx = _ncdf.read_field(target_grid_file,'angle_dx')
 		elif target_model == 'ROMS':
 			coord_names=["lon_rho", "lat_rho"]
 
 		# import target grid into ESMF grid object
-		self.grid_target = ESMF.Grid(filename=target_grid_file,filetype=ESMF.FileFormat.GRIDSPEC,
+		self.grid_target = _ESMF.Grid(filename=target_grid_file,filetype=_ESMF.FileFormat.GRIDSPEC,
 		                             coord_names=coord_names) 
 
 		# import same target grid into ESMF locstream object
-		self.locstream_target = ESMF.LocStream(self.nx * self.ny, coord_sys=ESMF.CoordSys.SPH_DEG)
+		self.locstream_target = _ESMF.LocStream(self.nx * self.ny, coord_sys=_ESMF.CoordSys.SPH_DEG)
 		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1, \
 		self.jmin:self.jmax+1].flatten()
 		self.locstream_target["ESMF:Lat"] = self.grid_target.coords[0][1][self.imin:self.imax+1, \

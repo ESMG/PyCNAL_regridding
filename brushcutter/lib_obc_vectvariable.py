@@ -1,9 +1,8 @@
-import numpy as np
-import ESMF
-from brushcutter import lib_ioncdf as ncdf
-from brushcutter import fill_msg_grid as fill
-from brushcutter import mod_utils as modu
-import matplotlib.pylab as plt
+import numpy as _np
+import ESMF as _ESMF
+from brushcutter import lib_ioncdf as _ncdf
+from brushcutter import fill_msg_grid as _fill
+import matplotlib.pylab as _plt
 
 class obc_vectvariable():
 	''' A class describing an open boundary condition vector variable
@@ -67,9 +66,9 @@ class obc_vectvariable():
 	def allocate(self):
 		''' Allocate the output array '''
 		if self.geometry == 'surface':
-			data = np.empty((self.nz,self.ny,self.nx))
+			data = _np.empty((self.nz,self.ny,self.nx))
 		elif self.geometry == 'line':
-			data = np.empty((self.ny,self.nx))
+			data = _np.empty((self.ny,self.nx))
 		return data
 
 	def set_constant_value(self,value_u,value_v,depth_vector=None):
@@ -104,14 +103,14 @@ class obc_vectvariable():
 		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
 		# 1. read the original field
-		datasrc_u = ncdf.read_field(filename,variable_u,frame=frame)
-		datasrc_v = ncdf.read_field(filename,variable_v,frame=frame)
+		datasrc_u = _ncdf.read_field(filename,variable_u,frame=frame)
+		datasrc_v = _ncdf.read_field(filename,variable_v,frame=frame)
 		try:
-			self.timesrc = ncdf.read_time(filename,timename,frame=frame)
+			self.timesrc = _ncdf.read_time(filename,timename,frame=frame)
 		except:
 			print('input data time variable not read')
 		if self.geometry == 'surface':
-			self.depth, self.nz, self.dz = ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
+			self.depth, self.nz, self.dz = _ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
 
 		# TODO !! make rotation to east,north from source grid.
 
@@ -124,27 +123,27 @@ class obc_vectvariable():
 			dataextrap_v = datasrc_v.copy()
 		# 3. ESMF interpolation
 		# Create source grid
-		gridsrc = ESMF.Grid(filename=filename,filetype=ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
+		gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
 		self.gridsrc = gridsrc
 		# Create a field on the centers of the grid
-		field_src = ESMF.Field(gridsrc, staggerloc=ESMF.StaggerLoc.CENTER)
+		field_src = _ESMF.Field(gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 		# Create a field on the centers of the grid
 		if use_locstream:
-			field_target = ESMF.Field(self.locstream_target)
+			field_target = _ESMF.Field(self.locstream_target)
 		else:
-			field_target = ESMF.Field(self.grid_target, staggerloc=ESMF.StaggerLoc.CENTER)
+			field_target = _ESMF.Field(self.grid_target, staggerloc=_ESMF.StaggerLoc.CENTER)
 		# Set up a regridding object between source and destination
-		regridme = ESMF.Regrid(field_src, field_target,
-	                        regrid_method=ESMF.RegridMethod.BILINEAR)
+		regridme = _ESMF.Regrid(field_src, field_target,
+	                        regrid_method=_ESMF.RegridMethod.BILINEAR)
 
 		self.data_u = self.perform_interpolation(dataextrap_u,regridme,field_src,field_target,use_locstream)
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,field_target,use_locstream)
 
 		# vector rotation to output grid
-		self.data_u_out = self.data_u * np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \
-		                  self.data_v * np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1])
-		self.data_v_out = self.data_v * np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) - \
-		                  self.data_u * np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) 
+		self.data_u_out = self.data_u * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \
+		                  self.data_v * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1])
+		self.data_v_out = self.data_v * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) - \
+		                  self.data_u * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) 
 		return None
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
@@ -155,31 +154,31 @@ class obc_vectvariable():
 		* else use provided missing value to create mask '''
 		try:
 			logicalmask = data.mask
-			mask = np.ones(logicalmask.shape)
-			mask[np.where(logicalmask == True)] = 0
+			mask = _np.ones(logicalmask.shape)
+			mask[_np.where(logicalmask == True)] = 0
 		except:
 			if missing_value is not None:
-				mask = np.ones(data.shape)
-				mask[np.where(data == missing_value)] = 0
+				mask = _np.ones(data.shape)
+				mask[_np.where(data == missing_value)] = 0
 			else:
 				exit('Cannot create mask, please provide a missing_value, or maskfile')
 		if self.debug:
-			plt.figure() ; plt.contourf(mask[0,:,:],[0.99,1.01]) ; plt.colorbar() ; plt.title('land sea mask')
+			_plt.figure() ; _plt.contourf(mask[0,:,:],[0.99,1.01]) ; _plt.colorbar() ; _plt.title('land sea mask')
 		return mask
 
 	def perform_extrapolation(self,datasrc,maskfile,maskvar,missing_value):
 		# 2.1 read mask or compute it
 		if maskfile is not None:
-			mask = ncdf.read_field(maskfile,maskvar)
+			mask = _ncdf.read_field(maskfile,maskvar)
 		else:
 			mask = self.compute_mask_from_missing_value(datasrc,missing_value=missing_value)
 		# 2.2 mask the source data
-		datasrc[np.where(mask == 0)] = self.xmsg
-		datamin = datasrc[np.where(mask == 1)].min()
-		datamax = datasrc[np.where(mask == 1)].max()
+		datasrc[_np.where(mask == 0)] = self.xmsg
+		datamin = datasrc[_np.where(mask == 1)].min()
+		datamax = datasrc[_np.where(mask == 1)].max()
 		if self.debug:
-			datasrc_plt = np.ma.masked_values(datasrc,self.xmsg)
-			plt.figure() ; plt.contourf(datasrc_plt[0,:,:],40) ; plt.title('original') ; plt.colorbar() 
+			datasrc_plt = _np.ma.masked_values(datasrc,self.xmsg)
+			_plt.figure() ; _plt.contourf(datasrc_plt[0,:,:],40) ; _plt.title('original') ; _plt.colorbar() 
 		# 2.3 perform land extrapolation on reduced variable
 		datanorm = self.normalize(datasrc,datamin,datamax,mask)
 		if self.debug:
@@ -193,21 +192,21 @@ class obc_vectvariable():
 		''' drown_field is a wrapper around the fortran code fill_msg_grid.
 		depending on the output geometry, applies land extrapolation on 1 or N levels'''
 		if self.geometry == 'surface':
-			for kz in np.arange(self.nz):
+			for kz in _np.arange(self.nz):
 				tmpin = data[kz,:,:].transpose()
 				if self.debug and kz == 0:
-					tmpin_plt = np.ma.masked_values(tmpin,self.xmsg)
-					plt.figure() ; plt.contourf(tmpin_plt.transpose(),40) ; plt.colorbar() ; 
-					plt.title('normalized before drown')
-				tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
+					tmpin_plt = _np.ma.masked_values(tmpin,self.xmsg)
+					_plt.figure() ; _plt.contourf(tmpin_plt.transpose(),40) ; _plt.colorbar() ; 
+					_plt.title('normalized before drown')
+				tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 				self.nscan, self.epsx, self.relc)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
-					plt.figure() ; plt.contourf(tmpout.transpose(),40) ; plt.colorbar() ; 
-					plt.title('normalized after drown') 
+					_plt.figure() ; _plt.contourf(tmpout.transpose(),40) ; _plt.colorbar() ; 
+					_plt.title('normalized after drown') 
 		elif self.geometry == 'line':
 			tmpin = data[:,:].transpose()
-			tmpout = fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
+			tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 			self.nscan, self.epsx, self.relc)
 			data[:,:] = tmpout.transpose()
 		return data
@@ -215,7 +214,7 @@ class obc_vectvariable():
 	def normalize(self,data,datamin,datamax,mask):
 		''' create a reduced variable to perform better drown '''
 		datanorm = ( data -datamin) / (datamax - datamin)
-		datanorm[np.where( mask == 0 )] = self.xmsg
+		datanorm[_np.where( mask == 0 )] = self.xmsg
 		return datanorm
 
 	def unnormalize(self,datanorm,datamin,datamax):
@@ -226,7 +225,7 @@ class obc_vectvariable():
 	def perform_interpolation(self,dataextrap,regridme,field_src,field_target,use_locstream):
 		data = self.allocate()
 		if self.geometry == 'surface':
-			for kz in np.arange(self.nz):
+			for kz in _np.arange(self.nz):
 				field_src.data[:] = dataextrap[kz,:,:].transpose()
 				field_target = regridme(field_src, field_target)
 				if use_locstream:
@@ -238,27 +237,27 @@ class obc_vectvariable():
 					data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1, \
 					                                             self.imin:self.imax+1]
 					if self.debug and kz == 0:
-						data_target_plt = np.ma.masked_values(data[kz,:,:],self.xmsg)
-						#data_target_plt = np.ma.masked_values(field_target.data,self.xmsg)
-						plt.figure() ; plt.contourf(data_target_plt[:,:],40) ; plt.colorbar() ; 
-						plt.title('regridded') ; plt.show()
+						data_target_plt = _np.ma.masked_values(data[kz,:,:],self.xmsg)
+						#data_target_plt = _np.ma.masked_values(field_target.data,self.xmsg)
+						_plt.figure() ; _plt.contourf(data_target_plt[:,:],40) ; _plt.colorbar() ; 
+						_plt.title('regridded') ; _plt.show()
 		elif self.geometry == 'line':
 			field_src.data[:] = dataextrap[:,:].transpose()
 			field_target = regridme(field_src, field_target)
 			if use_locstream:
-				data[:,:] = np.reshape(field_target.data.transpose(),(self.ny,self.nx))
+				data[:,:] = _np.reshape(field_target.data.transpose(),(self.ny,self.nx))
 			else:
 				data[:,:] = field_target.data.transpose()[self.jmin:self.jmax+1,self.imin:self.imax+1]
 		return data
 
 	def depth_dz_from_vector(self,depth_vector):
 		self.nz = depth_vector.shape[0]
-		self.depth = np.empty((self.nz,self.ny,self.nx))
-		for ky in np.arange(self.ny):
-			for kx in np.arange(self.nx):
+		self.depth = _np.empty((self.nz,self.ny,self.nx))
+		for ky in _np.arange(self.ny):
+			for kx in _np.arange(self.nx):
 				self.depth[:,ky,kx] = depth_vector
 		# compute layer thickness
-		self.dz = np.empty((self.nz,self.ny,self.nx))
+		self.dz = _np.empty((self.nz,self.ny,self.nx))
 		self.dz[:-1,:,:] = self.depth[1:,:,:] - self.depth[:-1,:,:]
 		# test if bounds exist first (to do), else
 		self.dz[-1,:,:] = self.dz[-2,:,:]
