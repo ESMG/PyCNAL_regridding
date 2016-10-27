@@ -1,3 +1,3 @@
-from lib_obc_segments import obc_segment
-from lib_obc_variable import obc_variable
-from lib_obc_vectvariable import obc_vectvariable
+from brushcutter.lib_obc_segments import obc_segment
+from brushcutter.lib_obc_variable import obc_variable
+from brushcutter.lib_obc_vectvariable import obc_vectvariable
