@@ -83,7 +83,7 @@ class obc_vectvariable():
 		
 	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown=True,maskfile=None,maskvar=None, \
 	                     missing_value=None,use_locstream=False,from_global=True,depthname='z', \
-	                     timename='time',coord_names=['lon','lat']):
+	                     timename='time',coord_names=['lon','lat'],method='bilinear'):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -133,8 +133,13 @@ class obc_vectvariable():
 		else:
 			field_target = _ESMF.Field(self.grid_target, staggerloc=_ESMF.StaggerLoc.CENTER)
 		# Set up a regridding object between source and destination
-		regridme = _ESMF.Regrid(field_src, field_target,
-	                        regrid_method=_ESMF.RegridMethod.BILINEAR)
+		if method == 'bilinear':
+			regridme = _ESMF.Regrid(field_src, field_target,
+			                        regrid_method=_ESMF.RegridMethod.BILINEAR)
+		elif method == 'patch':
+			regridme = _ESMF.Regrid(field_src, field_target,
+			                        regrid_method=_ESMF.RegridMethod.PATCH)
+
 
 		self.data_u = self.perform_interpolation(dataextrap_u,regridme,field_src,field_target,use_locstream)
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,field_target,use_locstream)
