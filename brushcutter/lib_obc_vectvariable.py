@@ -124,7 +124,7 @@ class obc_vectvariable():
 		# 3. ESMF interpolation
 		# Create source grid
 		gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
-		self.gridsrc = gridsrc
+		#self.gridsrc = gridsrc
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 		# Create a field on the centers of the grid
@@ -143,6 +143,12 @@ class obc_vectvariable():
 
 		self.data_u = self.perform_interpolation(dataextrap_u,regridme,field_src,field_target,use_locstream)
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,field_target,use_locstream)
+
+		# free memory (ESMPy has memory leak)
+		gridsrc.destroy()
+		field_src.destroy()
+		field_target.destroy()
+		regridme.destroy()
 
 		# vector rotation to output grid
 		self.data_u_out = self.data_u * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \

@@ -162,7 +162,7 @@ class obc_variable():
 		# 3. ESMF interpolation
 		# Create source grid
 		gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
-		self.gridsrc = gridsrc
+		#self.gridsrc = gridsrc
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 		# Create a field on the centers of the grid
@@ -179,6 +179,13 @@ class obc_variable():
 			                        regrid_method=_ESMF.RegridMethod.PATCH)
 
 		self.data = self.perform_interpolation(dataextrap,regridme,field_src,field_target,use_locstream)
+
+		# free memory (ESMPy has memory leak)
+		gridsrc.destroy()
+		field_src.destroy()
+		field_target.destroy()
+		regridme.destroy()
+
 		return None
 		
 	def compute_mask_from_missing_value(self,data,missing_value=None):
