@@ -60,13 +60,21 @@ class obc_segment():
 		if target_model == 'MOM6':
 			coord_names=["x", "y"]
 			self.angle_dx = _ncdf.read_field(target_grid_file,'angle_dx')
+			lon_target = _ncdf.read_field(target_grid_file,'x')
+			lat_target = _ncdf.read_field(target_grid_file,'y')
+			ny_target,nx_target = lat_target.shape
+			self.grid_target = _ESMF.Grid(_np.array([nx_target,ny_target]))
+			self.grid_target.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+			tc=self.grid_target.coords[_ESMF.StaggerLoc.CENTER]
+			tc[0][:]=lon_target.T
+			tc[1][:]=lat_target.T
 		elif target_model == 'ROMS':
 			coord_names=["lon_rho", "lat_rho"]
 
-		# import target grid into ESMF grid object
-		self.grid_target = _ESMF.Grid(filename=target_grid_file,filetype=_ESMF.FileFormat.GRIDSPEC,
-		                             coord_names=coord_names) 
-
+			# import target grid into ESMF grid object
+			self.grid_target = _ESMF.Grid(filename=target_grid_file,filetype=_ESMF.FileFormat.GRIDSPEC,
+		                             coord_names=coord_names)
+					      
 		# import same target grid into ESMF locstream object
 		self.locstream_target = _ESMF.LocStream(self.nx * self.ny, coord_sys=_ESMF.CoordSys.SPH_DEG)
 		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1, \
