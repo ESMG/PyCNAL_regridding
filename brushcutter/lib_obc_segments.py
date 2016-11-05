@@ -21,13 +21,13 @@ class obc_segment():
 			north = obc_segment('north','./roms_grd.nc',target_model='ROMS,'imin=0,imax=180,jmin=480,jmax=480)
 		'''
 	
-#		* imin : along x axis, where the segment begins
+#		* istart : along x axis, where the segment begins
 #
-#		* imax : along x axis, where the segment ends
+#		* iend : along x axis, where the segment ends
 #
-#		* jmin : along y axis, where the segment begins
+#		* jstart : along y axis, where the segment begins
 #
-#		* jmax : along y axis, where the segment end
+#		* jend : along y axis, where the segment end
 #
 #		'''
 
@@ -38,11 +38,36 @@ class obc_segment():
 		self.items.append('segment_name')
 		self.items.append('target_grid')
 		self.debug = False
+
 		# iterate over all kwargs and store them as attributes for the object
 		if kwargs is not None:
 			self.__dict__.update(kwargs)
 			for key, value in kwargs.items():
 				self.items.append(key)
+
+		if self.istart > self.iend:
+			self.imin=self.iend
+			self.imax=self.istart
+			self.orientation=2 #E-W
+		elif self.iend > self.istart:
+			self.imin=self.istart
+			self.imax=self.iend
+			self.orientation=0 #W-E
+		else:
+			self.imin=self.istart
+			self.imax=self.istart
+		if self.jstart > self.jend:
+			self.jmin=self.jend
+			self.jmax=self.jstart
+			self.orientation=3 #N-S
+		elif self.jend > self.jstart:
+			self.jmin=self.jstart
+			self.jmax=self.jend
+			self.orientation=1 #S-N
+		else:
+			self.jmin=self.jstart
+			self.jmax=self.jstart
+			
 		# compute dimensions
 		self.nx = self.imax - self.imin + 1	
 		self.ny = self.jmax - self.jmin + 1	

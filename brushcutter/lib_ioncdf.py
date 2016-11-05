@@ -102,8 +102,10 @@ def write_obc_file(list_segments,list_variables,list_vectvariables,time_point,ou
 		ncsegments_lon[nseg][:] = list_segments[nseg].lon
 		ncsegments_lat[nseg][:] = list_segments[nseg].lat
 		ncsegments_ilist[nseg][:] = list_segments[nseg].ilist
+		ncsegments_ilist[nseg].orientation = list_segments[nseg].orientation
 		ncsegments_jlist[nseg][:] = list_segments[nseg].jlist
-
+		ncsegments_jlist[nseg].orientation = list_segments[nseg].orientation
+		
 	# fill variables
 	for nvar in np.arange(len(list_variables)):
 		ncvariables[nvar][0,:] = list_variables[nvar].data

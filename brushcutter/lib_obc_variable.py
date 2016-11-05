@@ -204,7 +204,7 @@ class obc_variable():
 		self.data = self.perform_interpolation(dataextrap,regridme,field_src,field_target,use_locstream)
 
 		# free memory (ESMPy has memory leak)
-		gridsrc.destroy()
+		self.gridsrc.destroy()
 		field_src.destroy()
 		field_target.destroy()
 		regridme.destroy()

@@ -163,7 +163,7 @@ class obc_vectvariable():
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,field_target,use_locstream)
 
 		# free memory (ESMPy has memory leak)
-		gridsrc.destroy()
+		self.gridsrc.destroy()
 		field_src.destroy()
 		field_target.destroy()
 		regridme.destroy()
