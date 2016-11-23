@@ -15,8 +15,16 @@ def write_obc_file(list_segments,list_variables,list_vectvariables,time_point,ou
 	
         # dimensions
 	for segment in list_segments:
-		fid.createDimension('nx_' + segment.segment_name, segment.nx)
-		fid.createDimension('ny_' + segment.segment_name, segment.ny)
+		xdimnam='nx_' + segment.segment_name
+		ydimnam='ny_' + segment.segment_name
+		fid.createDimension(xdimnam, segment.nx)
+		fid.createDimension(ydimnam, segment.ny)
+		xdimv=fid.createVariable(xdimnam, 'i4',(xdimnam))
+		ydimv=fid.createVariable(ydimnam, 'i4',(ydimnam))		
+		xdimv.cartesian_axis='X'
+		ydimv.cartesian_axis='Y'
+		xdimv[:]=np.arange(0,segment.nx)
+		ydimv[:]=np.arange(0,segment.ny)		
 	for variable in list_variables:
 		if (variable.geometry == 'surface'):
 			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name, variable.nz)
