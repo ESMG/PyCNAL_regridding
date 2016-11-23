@@ -27,12 +27,25 @@ def write_obc_file(list_segments,list_variables,list_vectvariables,time_point,ou
 		ydimv[:]=np.arange(0,segment.ny)		
 	for variable in list_variables:
 		if (variable.geometry == 'surface'):
-			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name, variable.nz)
+			zdimnam='nz_' + variable.segment_name + '_' + variable.variable_name
+			fid.createDimension(zdimnam, variable.nz)
+			zdimv=fid.createVariable(zdimnam, 'i4',(zdimnam))
+			zdimv.cartesian_axis='Z'
+			zdimv[:]=np.arange(0,variable.nz)
+			
 	for variable in list_vectvariables:
 		if (variable.geometry == 'surface'):
-			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name_u, variable.nz)
-			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name_v, variable.nz)
-
+			zdimnamu='nz_' + variable.segment_name + '_' + variable.variable_name_u
+			zdimnamv='nz_' + variable.segment_name + '_' + variable.variable_name_v			
+			fid.createDimension(zdimnamu, variable.nz)
+			zdimv=fid.createVariable(zdimnamu, 'i4',(zdimnamu))
+			zdimv.cartesian_axis='Z'
+			zdimv[:]=np.arange(0,variable.nz)
+			fid.createDimension(zdimnamv, variable.nz)
+			zdimv=fid.createVariable(zdimnamv, 'i4',(zdimnamv))
+			zdimv.cartesian_axis='Z'
+			zdimv[:]=np.arange(0,variable.nz)			
+			
 
 	# define time and coordinates
 	nctime = fid.createVariable('time','f8',('time',))
