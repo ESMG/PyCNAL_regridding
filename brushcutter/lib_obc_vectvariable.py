@@ -8,7 +8,7 @@ class obc_vectvariable():
 	''' A class describing an open boundary condition vector variable
 	on an obc_segment '''
 
-	def __init__(self,segment,variable_name_u,variable_name_v,**kwargs):
+	def __init__(self,segment,variable_name_u,variable_name_v,use_locstream=False,**kwargs):
 		''' constructor of obc_variable : import from segment and adds attributes
 		specific to this variable
 
@@ -61,6 +61,13 @@ class obc_vectvariable():
 		self.nscan = 1500             # usually much less than this
 		self.epsx  = 1.e-4            # variable dependent / not with reduced var
 		self.relc  = 0.6              # relaxation coefficient
+
+		# Create a field on the centers of the grid
+		self.use_locstream = use_locstream
+		if use_locstream:
+			self.field_target = _ESMF.Field(self.locstream_target)
+		else:
+			self.field_target = _ESMF.Field(self.grid_target, staggerloc=_ESMF.StaggerLoc.CENTER)
 		return None
 
 	def allocate(self):
@@ -82,8 +89,8 @@ class obc_vectvariable():
 		return None
 		
 	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown=True,maskfile=None,maskvar=None, \
-	                     missing_value=None,use_locstream=False,from_global=True,depthname='z', \
-	                     timename='time',coord_names=['lon','lat'],method='bilinear'):
+	                     missing_value=None,from_global=True,depthname='z', \
+	                     timename='time',coord_names=['lon','lat'],method='bilinear',interpolator=None):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -127,35 +134,38 @@ class obc_vectvariable():
 		#self.gridsrc = gridsrc
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
-		# Create a field on the centers of the grid
-		if use_locstream:
-			field_target = _ESMF.Field(self.locstream_target)
-		else:
-			field_target = _ESMF.Field(self.grid_target, staggerloc=_ESMF.StaggerLoc.CENTER)
+#		# Create a field on the centers of the grid
+#		if use_locstream:
+#			field_target = _ESMF.Field(self.locstream_target)
+#		else:
+#			field_target = _ESMF.Field(self.grid_target, staggerloc=_ESMF.StaggerLoc.CENTER)
 		# Set up a regridding object between source and destination
-		if method == 'bilinear':
-			regridme = _ESMF.Regrid(field_src, field_target,
-			                        regrid_method=_ESMF.RegridMethod.BILINEAR)
-		elif method == 'patch':
-			regridme = _ESMF.Regrid(field_src, field_target,
-			                        regrid_method=_ESMF.RegridMethod.PATCH)
+		if interpolator is None:
+			if method == 'bilinear':
+				regridme = _ESMF.Regrid(field_src, self.field_target,
+				                        regrid_method=_ESMF.RegridMethod.BILINEAR)
+			elif method == 'patch':
+				regridme = _ESMF.Regrid(field_src, self.field_target,
+				                        regrid_method=_ESMF.RegridMethod.PATCH)
+		else:
+			regridme = interpolator
 
 
-		self.data_u = self.perform_interpolation(dataextrap_u,regridme,field_src,field_target,use_locstream)
-		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,field_target,use_locstream)
+		self.data_u = self.perform_interpolation(dataextrap_u,regridme,field_src,self.field_target,self.use_locstream)
+		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,self.field_target,self.use_locstream)
 
 		# free memory (ESMPy has memory leak)
 		gridsrc.destroy()
 		field_src.destroy()
-		field_target.destroy()
-		regridme.destroy()
+		#field_target.destroy()
+		#regridme.destroy()
 
 		# vector rotation to output grid
 		self.data_u_out = self.data_u * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \
 		                  self.data_v * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1])
 		self.data_v_out = self.data_v * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) - \
 		                  self.data_u * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) 
-		return None
+		return regridme
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
 		''' compute mask from missing value :
@@ -274,3 +284,23 @@ class obc_vectvariable():
 		self.dz[-1,:,:] = self.dz[-2,:,:]
 		return None
 
+	def extract_subset_into(self,dst_obc_variable):
+		''' extract subset of data from source obc variable into dest'''
+		if self.geometry == 'surface':
+			dst_obc_variable.data_u_out  = self.data_u_out[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.data_v_out  = self.data_v_out[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.depth       = self.depth[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.dz          = self.dz[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.nz          = self.nz
+		elif self.geometry == 'line':
+			dst_obc_variable.data_u_out  = self.data_u_out[dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.data_v_out  = self.data_v_out[dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
+
+		dst_obc_variable.timesrc     = self.timesrc
+		return None

@@ -10,12 +10,12 @@ momgrd = '../data/ocean_hgrid_v2.nc'
 domain = los.obc_segment('segment_001', momgrd,imin=0,imax=360,jmin=0,  jmax=960)
 
 # ---------- define variables on each segment ------------------
-temp_domain = lov.obc_variable(domain,'temp',geometry='surface',obctype='radiation',debug=False)
-salt_domain = lov.obc_variable(domain,'salt',geometry='surface',obctype='radiation')
+temp_domain = lov.obc_variable(domain,'temp',geometry='surface',obctype='radiation',use_locstream=False)
+salt_domain = lov.obc_variable(domain,'salt',geometry='surface',obctype='radiation',use_locstream=False)
 
 # ---------- interpolate T/S from WOA monthly file, frame = 0 (jan) and using locstream (x2 speedup)
-temp_domain.interpolate_from( woatemp,'temp',frame=0,depthname='st_ocean',use_locstream=False,from_global=False,coord_names=['geolon_t','geolat_t'])
-salt_domain.interpolate_from( woasalt,'salt',frame=0,depthname='st_ocean',use_locstream=False,from_global=False,coord_names=['geolon_t','geolat_t'])
+temp_domain.interpolate_from( woatemp,'temp',frame=0,depthname='st_ocean',from_global=False,coord_names=['geolon_t','geolat_t'])
+salt_domain.interpolate_from( woasalt,'salt',frame=0,depthname='st_ocean',from_global=False,coord_names=['geolon_t','geolat_t'])
 
 # ---------- list segments and variables to be written -------
 list_segments = [domain]
