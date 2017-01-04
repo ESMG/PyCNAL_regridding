@@ -8,24 +8,12 @@ import ConfigParser
 
 # this example demonstrate how to make analytical obc
 
-# ---------- path to grid and WOA T/S data ---------------------
-# read information in files.path file for user given in arg
-
-this_user = sys.argv[-1]
-config = ConfigParser.ConfigParser()
-config.read('files.path')
-try:
-	for item in config.options(this_user):
-		exec(item + ' = config.get(this_user,item)')
-except:
-	exit('Please provide the id from files.path you want to use')
-
-momgrd = 'ocean_hgrid_v2.nc'
+momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
-south = los.obc_segment('segment_001',momdir + momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
-north = los.obc_segment('segment_002',momdir + momgrd,imin=0,imax=360,jmin=960,jmax=960)
-west  = los.obc_segment('segment_003',momdir + momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
+south = los.obc_segment('segment_001',momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
+north = los.obc_segment('segment_002',momgrd,imin=0,imax=360,jmin=960,jmax=960)
+west  = los.obc_segment('segment_003',momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
 
 # ---------- define variables on each segment ------------------
 temp_south = lov.obc_variable(south,'temp',geometry='surface',obctype='radiation')

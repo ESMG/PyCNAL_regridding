@@ -12,39 +12,39 @@ north = los.obc_segment('segment_002',momgrd,imin=0,imax=360,jmin=960,jmax=960)
 west  = los.obc_segment('segment_003',momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
 
 # ---------- define variables on each segment ------------------
-temp_south = lov.obc_variable(south,'temp',geometry='surface',obctype='radiation')
-temp_north = lov.obc_variable(north,'temp',geometry='surface',obctype='radiation')
-temp_west  = lov.obc_variable(west, 'temp',geometry='surface',obctype='radiation')
+temp_south = lov.obc_variable(south,'temp',geometry='surface',obctype='radiation',use_locstream=True)
+temp_north = lov.obc_variable(north,'temp',geometry='surface',obctype='radiation',use_locstream=True)
+temp_west  = lov.obc_variable(west, 'temp',geometry='surface',obctype='radiation',use_locstream=True)
 
-salt_south = lov.obc_variable(south,'salt',geometry='surface',obctype='radiation')
-salt_north = lov.obc_variable(north,'salt',geometry='surface',obctype='radiation')
-salt_west  = lov.obc_variable(west, 'salt',geometry='surface',obctype='radiation')
+salt_south = lov.obc_variable(south,'salt',geometry='surface',obctype='radiation',use_locstream=True)
+salt_north = lov.obc_variable(north,'salt',geometry='surface',obctype='radiation',use_locstream=True)
+salt_west  = lov.obc_variable(west, 'salt',geometry='surface',obctype='radiation',use_locstream=True)
 
-zeta_south = lov.obc_variable(south,'zeta',geometry='line',obctype='flather')
-zeta_north = lov.obc_variable(north,'zeta',geometry='line',obctype='flather')
-zeta_west  = lov.obc_variable(west ,'zeta',geometry='line',obctype='flather')
+zeta_south = lov.obc_variable(south,'zeta',geometry='line',obctype='flather',use_locstream=True)
+zeta_north = lov.obc_variable(north,'zeta',geometry='line',obctype='flather',use_locstream=True)
+zeta_west  = lov.obc_variable(west ,'zeta',geometry='line',obctype='flather',use_locstream=True)
 
-vel_south  = losv.obc_vectvariable(south,'u','v',geometry='surface',obctype='radiation')
-vel_north  = losv.obc_vectvariable(north,'u','v',geometry='surface',obctype='radiation')
-vel_west   = losv.obc_vectvariable(west ,'u','v',geometry='surface',obctype='radiation')
+vel_south  = losv.obc_vectvariable(south,'u','v',geometry='surface',obctype='radiation',use_locstream=True)
+vel_north  = losv.obc_vectvariable(north,'u','v',geometry='surface',obctype='radiation',use_locstream=True)
+vel_west   = losv.obc_vectvariable(west ,'u','v',geometry='surface',obctype='radiation',use_locstream=True)
 
 # ---------- interpolate T/S from WOA monthly file, frame = 0 (jan) and using locstream (x2 speedup)
-temp_south.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
-temp_north.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
-temp_west.interpolate_from(sodafile ,'temp',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
+temp_south.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+temp_north.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+temp_west.interpolate_from(sodafile ,'temp',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
 
-salt_south.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
-salt_north.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
-salt_west.interpolate_from(sodafile ,'salt',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
+salt_south.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+salt_north.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+salt_west.interpolate_from(sodafile ,'salt',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
 
 # ---------- set constant value for SSH ----------------------
-zeta_south.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
-zeta_north.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
-zeta_west.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xt_ocean','yt_ocean'])
+zeta_south.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+zeta_north.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+zeta_west.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
 
-vel_south.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xu_ocean','yu_ocean'])
-vel_north.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xu_ocean','yu_ocean'])
-vel_west.interpolate_from(sodafile ,'u','v',frame=0,depthname='st_ocean',use_locstream=True,coord_names=['xu_ocean','yu_ocean'])
+vel_south.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names=['xu_ocean','yu_ocean'])
+vel_north.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names=['xu_ocean','yu_ocean'])
+vel_west.interpolate_from(sodafile ,'u','v',frame=0,depthname='st_ocean',coord_names=['xu_ocean','yu_ocean'])
 
 # ---------- list segments and variables to be written -------
 list_segments = [south,north,west]

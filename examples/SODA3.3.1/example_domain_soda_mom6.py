@@ -7,16 +7,16 @@ momgrd = '../data/ocean_hgrid_v2.nc'
 domain = obc_segment('domain', momgrd,imin=0,imax=360,jmin=0,  jmax=960)
 
 # ---------- define variables on each segment ------------------
-temp_domain = obc_variable(domain,'temp',geometry='surface',obctype='radiation')
-salt_domain = obc_variable(domain,'salt',geometry='surface',obctype='radiation')
-ssh_domain  = obc_variable(domain,'ssh' ,geometry='line'   ,obctype='flather')
-vel_domain  = obc_vectvariable(domain,'u','v',geometry='surface',obctype='radiation')
+temp_domain = obc_variable(domain,'temp',geometry='surface',obctype='radiation',use_locstream=False)
+salt_domain = obc_variable(domain,'salt',geometry='surface',obctype='radiation',use_locstream=False)
+ssh_domain  = obc_variable(domain,'ssh' ,geometry='line'   ,obctype='flather',use_locstream=False)
+vel_domain  = obc_vectvariable(domain,'u','v',geometry='surface',obctype='radiation',use_locstream=False)
 
 # ---------- interpolate T/S from WOA monthly file, frame = 0 (jan) and using locstream (x2 speedup)
-temp_domain.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xt_ocean','yt_ocean'])
-salt_domain.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xt_ocean','yt_ocean'])
-ssh_domain.interpolate_from(sodafile ,'ssh' ,frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xt_ocean','yt_ocean'])
-vel_domain.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',use_locstream=False,coord_names=['xu_ocean','yu_ocean'])
+temp_domain.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+salt_domain.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+ssh_domain.interpolate_from(sodafile ,'ssh' ,frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
+vel_domain.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names=['xu_ocean','yu_ocean'])
 
 # ---------- list segments and variables to be written -------
 list_segments = [domain]
