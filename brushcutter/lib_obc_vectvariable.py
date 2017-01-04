@@ -133,22 +133,23 @@ class obc_vectvariable():
 			dataextrap_v = datasrc_v.copy()
 		# 3. ESMF interpolation
 		# Create source grid
-#		gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
-		if x_coords is not None and y_coords is not None:
-			lon_src = x_coords
-			lat_src = y_coords
-		else:
-			lons = _ncdf.read_field(filename,coord_names[0])
-			lats = _ncdf.read_field(filename,coord_names[1])
-			lon_src,lat_src = _np.meshgrid(lons,lats)
+		self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
+		# RD : modif by MJH creates memory leak, commented out until fix found
+#		if x_coords is not None and y_coords is not None:
+#			lon_src = x_coords
+#			lat_src = y_coords
+#		else:
+#			lons = _ncdf.read_field(filename,coord_names[0])
+#			lats = _ncdf.read_field(filename,coord_names[1])
+#			lon_src,lat_src = _np.meshgrid(lons,lats)
 
-		nx_src = lon_src.shape[0]
-		ny_src = lat_src.shape[0]
-		self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
-		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
-		sc=self.gridsrc.coords[_ESMF.StaggerLoc.CENTER]
-		sc[0][:]=lon_src.T
-		sc[1][:]=lat_src.T
+#		nx_src = lon_src.shape[0]
+#		ny_src = lat_src.shape[0]
+#		self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+#		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+#		sc=self.gridsrc.coords[_ESMF.StaggerLoc.CENTER]
+#		sc[0][:]=lon_src.T
+#		sc[1][:]=lat_src.T
 
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
