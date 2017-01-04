@@ -1,7 +1,8 @@
 import numpy as _np
 import ESMF as _ESMF
 from brushcutter import lib_ioncdf as _ncdf
-from brushcutter import fill_msg_grid as _fill
+#from brushcutter import fill_msg_grid as _fill
+import fill_msg_grid as _fill
 import matplotlib.pylab as _plt
 
 class obc_vectvariable():
@@ -90,7 +91,7 @@ class obc_vectvariable():
 		
 	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown=True,maskfile=None,maskvar=None, \
 	                     missing_value=None,from_global=True,depthname='z', \
-	                     timename='time',coord_names=['lon','lat'],method='bilinear',interpolator=None):
+	                     timename='time',coord_names=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',interpolator=None):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -118,7 +119,9 @@ class obc_vectvariable():
 			print('input data time variable not read')
 		if self.geometry == 'surface':
 			self.depth, self.nz, self.dz = _ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
-
+		else:
+			self.depth=0.0; self.nz=1; self.dz=1 
+			
 		# TODO !! make rotation to east,north from source grid.
 
 		# 2. perform extrapolation over land
@@ -130,10 +133,25 @@ class obc_vectvariable():
 			dataextrap_v = datasrc_v.copy()
 		# 3. ESMF interpolation
 		# Create source grid
-		gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
-		#self.gridsrc = gridsrc
+#		gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,is_sphere=from_global,coord_names=coord_names)
+		if x_coords is not None and y_coords is not None:
+			lon_src = x_coords
+			lat_src = y_coords
+		else:
+			lons = _ncdf.read_field(filename,coord_names[0])
+			lats = _ncdf.read_field(filename,coord_names[1])
+			lon_src,lat_src = _np.meshgrid(lons,lats)
+
+		nx_src = lon_src.shape[0]
+		ny_src = lat_src.shape[0]
+		self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+		sc=self.gridsrc.coords[_ESMF.StaggerLoc.CENTER]
+		sc[0][:]=lon_src.T
+		sc[1][:]=lat_src.T
+
 		# Create a field on the centers of the grid
-		field_src = _ESMF.Field(gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
+		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 #		# Create a field on the centers of the grid
 #		if use_locstream:
 #			field_target = _ESMF.Field(self.locstream_target)
@@ -155,7 +173,7 @@ class obc_vectvariable():
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,self.field_target,self.use_locstream)
 
 		# free memory (ESMPy has memory leak)
-		gridsrc.destroy()
+		self.gridsrc.destroy()
 		field_src.destroy()
 		#field_target.destroy()
 		#regridme.destroy()

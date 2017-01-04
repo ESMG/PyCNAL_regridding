@@ -15,16 +15,37 @@ def write_obc_file(list_segments,list_variables,list_vectvariables,time_point,ou
 	
         # dimensions
 	for segment in list_segments:
-		fid.createDimension('nx_' + segment.segment_name, segment.nx)
-		fid.createDimension('ny_' + segment.segment_name, segment.ny)
+		xdimnam='nx_' + segment.segment_name
+		ydimnam='ny_' + segment.segment_name
+		fid.createDimension(xdimnam, segment.nx)
+		fid.createDimension(ydimnam, segment.ny)
+		xdimv=fid.createVariable(xdimnam, 'i4',(xdimnam))
+		ydimv=fid.createVariable(ydimnam, 'i4',(ydimnam))		
+		xdimv.cartesian_axis='X'
+		ydimv.cartesian_axis='Y'
+		xdimv[:]=np.arange(0,segment.nx)
+		ydimv[:]=np.arange(0,segment.ny)		
 	for variable in list_variables:
 		if (variable.geometry == 'surface'):
-			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name, variable.nz)
+			zdimnam='nz_' + variable.segment_name + '_' + variable.variable_name
+			fid.createDimension(zdimnam, variable.nz)
+			zdimv=fid.createVariable(zdimnam, 'i4',(zdimnam))
+			zdimv.cartesian_axis='Z'
+			zdimv[:]=np.arange(0,variable.nz)
+			
 	for variable in list_vectvariables:
 		if (variable.geometry == 'surface'):
-			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name_u, variable.nz)
-			fid.createDimension('nz_' + variable.segment_name + '_' + variable.variable_name_v, variable.nz)
-
+			zdimnamu='nz_' + variable.segment_name + '_' + variable.variable_name_u
+			zdimnamv='nz_' + variable.segment_name + '_' + variable.variable_name_v			
+			fid.createDimension(zdimnamu, variable.nz)
+			zdimv=fid.createVariable(zdimnamu, 'i4',(zdimnamu))
+			zdimv.cartesian_axis='Z'
+			zdimv[:]=np.arange(0,variable.nz)
+			fid.createDimension(zdimnamv, variable.nz)
+			zdimv=fid.createVariable(zdimnamv, 'i4',(zdimnamv))
+			zdimv.cartesian_axis='Z'
+			zdimv[:]=np.arange(0,variable.nz)			
+			
 
 	# define time and coordinates
 	nctime = fid.createVariable('time','f8',('time',))
@@ -102,8 +123,10 @@ def write_obc_file(list_segments,list_variables,list_vectvariables,time_point,ou
 		ncsegments_lon[nseg][:] = list_segments[nseg].lon
 		ncsegments_lat[nseg][:] = list_segments[nseg].lat
 		ncsegments_ilist[nseg][:] = list_segments[nseg].ilist
+		ncsegments_ilist[nseg].orientation = list_segments[nseg].orientation
 		ncsegments_jlist[nseg][:] = list_segments[nseg].jlist
-
+		ncsegments_jlist[nseg].orientation = list_segments[nseg].orientation
+		
 	# fill variables
 	for nvar in np.arange(len(list_variables)):
 		ncvariables[nvar][0,:] = list_variables[nvar].data
