@@ -15,9 +15,9 @@ woasalt = '../data/salt_WOA13-CM2.1_monthly.nc'
 momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
-south = los.obc_segment('segment_001', momgrd,imin=0,imax=360,jmin=0,  jmax=0  )
-north = los.obc_segment('segment_002', momgrd,imin=0,imax=360,jmin=960,jmax=960)
-west  = los.obc_segment('segment_003', momgrd,imin=0,imax=0,  jmin=0,  jmax=960)
+south = los.obc_segment('segment_001', momgrd,istart=0,iend=360,jstart=0,  jend=0  )
+north = los.obc_segment('segment_002', momgrd,istart=0,iend=360,jstart=960,jend=960)
+west  = los.obc_segment('segment_003', momgrd,istart=0,iend=0,  jstart=0,  jend=960)
 
 # ---------- define variables on each segment ------------------
 temp_south = lov.obc_variable(south,'temp',geometry='surface',obctype='radiation',use_locstream=True)

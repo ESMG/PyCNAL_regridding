@@ -4,7 +4,7 @@ sodafile = '../data/soda3.3.1_5dy_ocean_reg_1980_09_29.nc'
 momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
-domain = obc_segment('domain', momgrd,imin=0,imax=360,jmin=0,  jmax=960)
+domain = obc_segment('domain', momgrd,istart=0,iend=360,jstart=0,  jend=960)
 
 # ---------- define variables on each segment ------------------
 temp_domain = obc_variable(domain,'temp',geometry='surface',obctype='radiation',use_locstream=False)

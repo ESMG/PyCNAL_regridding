@@ -7,7 +7,7 @@ woasalt = '../data/salt_WOA13-CM2.1_monthly.nc'
 momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
-domain = los.obc_segment('segment_001', momgrd,imin=0,imax=360,jmin=0,  jmax=960)
+domain = los.obc_segment('segment_001', momgrd,istart=0,iend=360,jstart=0,  jend=960)
 
 # ---------- define variables on each segment ------------------
 temp_domain = lov.obc_variable(domain,'temp',geometry='surface',obctype='radiation',use_locstream=False)
