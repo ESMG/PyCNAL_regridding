@@ -86,18 +86,18 @@ class obc_segment():
 			coord_names=["x", "y"]
 			self.angle_dx = _ncdf.read_field(target_grid_file,'angle_dx')
 			# RD : modif by MJH creates memory leak, commented out until fix found
-			#lon_target = _ncdf.read_field(target_grid_file,'x')
-			#lat_target = _ncdf.read_field(target_grid_file,'y')
-			#ny_target,nx_target = lat_target.shape
-			#self.grid_target = _ESMF.Grid(_np.array([nx_target,ny_target]))
-			#self.grid_target.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
-			#tc=self.grid_target.coords[_ESMF.StaggerLoc.CENTER]
-			#tc[0][:]=lon_target.T
-			#tc[1][:]=lat_target.T
+			lon_target = _ncdf.read_field(target_grid_file,'x')
+			lat_target = _ncdf.read_field(target_grid_file,'y')
+			ny_target,nx_target = lat_target.shape
+			self.grid_target = _ESMF.Grid(_np.array([nx_target,ny_target]))
+			self.grid_target.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+			self.grid_target.coords[_ESMF.StaggerLoc.CENTER]
+			self.grid_target.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_target.T
+			self.grid_target.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_target.T
 
 			# import target grid into ESMF grid object
-			self.grid_target = _ESMF.Grid(filename=target_grid_file,filetype=_ESMF.FileFormat.GRIDSPEC,
-		                             coord_names=coord_names)
+			#self.grid_target = _ESMF.Grid(filename=target_grid_file,filetype=_ESMF.FileFormat.GRIDSPEC,
+		        #                     coord_names=coord_names)
 		elif target_model == 'ROMS':
 			coord_names=["lon_rho", "lat_rho"]
 
