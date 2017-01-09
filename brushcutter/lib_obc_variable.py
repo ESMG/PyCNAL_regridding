@@ -216,12 +216,6 @@ class obc_variable():
 		# free memory (ESMPy has memory leak)
 		self.gridsrc.destroy()
 		field_src.destroy()
-		#field_target.destroy()
-		#regridme.destroy()
-		#if interpolator is not None:
-		#	regridme.destroy()
-		#	regridme = None
-
 		return regridme
 		
 	def compute_mask_from_missing_value(self,data,missing_value=None):

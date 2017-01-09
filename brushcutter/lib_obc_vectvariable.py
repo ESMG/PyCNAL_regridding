@@ -176,8 +176,6 @@ class obc_vectvariable():
 		# free memory (ESMPy has memory leak)
 		self.gridsrc.destroy()
 		field_src.destroy()
-		#field_target.destroy()
-		#regridme.destroy()
 
 		# vector rotation to output grid
 		self.data_u_out = self.data_u * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \
