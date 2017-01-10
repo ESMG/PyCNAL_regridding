@@ -220,9 +220,12 @@ class obc_variable():
 		# 2.1 read mask or compute it
 		if maskfile is not None:
 			mask = _ncdf.read_field(maskfile,maskvar)
+			# to do, needs imin/imax_src,...
 		else:
 			mask = self.compute_mask_from_missing_value(datasrc,missing_value=missing_value)
 		# 2.2 mask the source data
+		if _np.ma.is_masked(datasrc):
+			datasrc = datasrc.data
 		datasrc[_np.where(mask == 0)] = self.xmsg
 		datamin = datasrc[_np.where(mask == 1)].min()
 		datamax = datasrc[_np.where(mask == 1)].max()

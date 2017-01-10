@@ -244,6 +244,8 @@ class obc_vectvariable():
 		else:
 			mask = self.compute_mask_from_missing_value(datasrc,missing_value=missing_value)
 		# 2.2 mask the source data
+		if _np.ma.is_masked(datasrc):
+			datasrc = datasrc.data
 		datasrc[_np.where(mask == 0)] = self.xmsg
 		datamin = datasrc[_np.where(mask == 1)].min()
 		datamax = datasrc[_np.where(mask == 1)].max()
