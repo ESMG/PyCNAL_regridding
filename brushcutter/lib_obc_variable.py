@@ -3,7 +3,11 @@ import ESMF as _ESMF
 from brushcutter import lib_ioncdf as _ncdf
 #from brushcutter import fill_msg_grid as _fill
 import fill_msg_grid as _fill
+#import creeping_sea as _creeping_sea
+#import mod_drown_py as _mod_drown_py
 import matplotlib.pylab as _plt
+
+import time as ptime
 
 class obc_variable():
 	''' A class describing an open boundary condition variable
@@ -48,6 +52,7 @@ class obc_variable():
 			'ny_' + self.segment_name,'nx_' + self.segment_name,)
 
 
+		# RD : move this
 		# default parameters for land extrapolation
 		# can be modified by changing the attribute of object
 		self.xmsg = -99
@@ -155,6 +160,7 @@ class obc_variable():
 		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
 		# 1. read the original field
+		print('read')
 		datasrc = _ncdf.read_field(filename,variable,frame=frame)
 		try:
 			self.timesrc = _ncdf.read_time(filename,timename,frame=frame)
@@ -166,14 +172,21 @@ class obc_variable():
 			self.depth=0.; self.nz=1; self.dz=0.
 			
 		# 2. perform extrapolation over land
+		print('drown')
+		start = ptime.time()
 		if drown is True:
 			dataextrap = self.perform_extrapolation(datasrc,maskfile,maskvar,missing_value)
 		else:
 			dataextrap = datasrc.copy()
+		end = ptime.time()
+		print('end drown', end-start)
 		# 3. ESMF interpolation
 		# Create source grid
 
 		# new way to create source grid
+		# TO DO : move into separate function, has to be called before drown
+		# so that we know the periodicity
+		start = ptime.time()
 		if x_coords is not None and y_coords is not None:
 			lon_src = x_coords
 			lat_src = y_coords
@@ -191,8 +204,10 @@ class obc_variable():
 
 		if from_global:
 			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
+			self.gtype = 1 # 1 = periodic
 		else:
 			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+			self.gtype = 0 # 1 = periodic 
 		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
 		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
 		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
@@ -200,6 +215,8 @@ class obc_variable():
 		# original from RD
 		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
 		#is_sphere=from_global,coord_names=coord_names)
+		end = ptime.time()
+		print(end-start)
 
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
@@ -259,12 +276,12 @@ class obc_variable():
 		datanorm = self.normalize(datasrc,datamin,datamax,mask)
 		if self.debug:
 			print(datanorm.min() , datanorm.max(), datamin, datamax)
-		datanormextrap = self.drown_field(datanorm)
+		datanormextrap = self.drown_field(datanorm,mask)
 		dataextrap = self.unnormalize(datanormextrap,datamin,datamax)
 		return dataextrap
 
 
-	def drown_field(self,data):
+	def drown_field(self,data,mask):
 		''' drown_field is a wrapper around the fortran code fill_msg_grid.
 		depending on the output geometry, applies land extrapolation on 1 or N levels'''
 		if self.geometry == 'surface':
@@ -276,6 +293,8 @@ class obc_variable():
 					_plt.title('normalized before drown')
 				tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 				self.nscan, self.epsx, self.relc)
+				#tmpout = _creeping_sea.cslf(tmpin,self.xmsg,-1.,1.,True)
+				#tmpout = _mod_drown_py.mod_drown.drown(0,tmpin,mask[kz,:,:].T,nb_inc=200,nb_smooth=40)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
 					_plt.figure() ; _plt.contourf(tmpout.transpose(),40) ; _plt.colorbar() ; 
@@ -284,6 +303,8 @@ class obc_variable():
 			tmpin = data[:,:].transpose()
 			tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 			self.nscan, self.epsx, self.relc)
+			##tmpout = _creeping_sea.cslf(tmpin,self.xmsg,-1.,1.,self.gtype)
+			#tmpout = _mod_drown_py.mod_drown.drown(0,tmpin,mask[:,:].T,nb_inc=200,nb_smooth=40)
 			data[:,:] = tmpout.transpose()
 		return data
 
@@ -313,10 +334,10 @@ class obc_variable():
 					data[kz,:,:] = field_target.data.transpose()[self.jmin:self.jmax+1, \
 					                                             self.imin:self.imax+1]
 					if self.debug and kz == 0:
-						data_target_plt = _np.ma.masked_values(self.data[0,:,:],self.xmsg)
+						data_target_plt = _np.ma.masked_values(data[0,:,:],self.xmsg)
 						#data_target_plt = _np.ma.masked_values(field_target.data,self.xmsg)
 						_plt.figure() ; _plt.contourf(data_target_plt[:,:],40) ; _plt.colorbar() ; 
-						_plt.title('regridded') ; plt.show()
+						_plt.title('regridded') ; _plt.show()
 		elif self.geometry == 'line':
 			field_src.data[:] = dataextrap[:,:].transpose()
 			field_target = regridme(field_src, field_target)

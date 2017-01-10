@@ -4,6 +4,9 @@ from brushcutter import lib_ioncdf as _ncdf
 #from brushcutter import fill_msg_grid as _fill
 import fill_msg_grid as _fill
 import matplotlib.pylab as _plt
+#import mod_drown_py as _mod_drown_py
+
+import time as ptime
 
 class obc_vectvariable():
 	''' A class describing an open boundary condition vector variable
@@ -137,6 +140,7 @@ class obc_vectvariable():
 		#is_sphere=from_global,coord_names=coord_names)
 
 		# new way to create source grid
+		start = ptime.time()
 		if x_coords is not None and y_coords is not None:
 			lon_src = x_coords
 			lat_src = y_coords
@@ -159,7 +163,9 @@ class obc_vectvariable():
 		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
 		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
 		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
-
+		end = ptime.time()
+		print(end-start)
+	
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 
@@ -226,12 +232,12 @@ class obc_vectvariable():
 		datanorm = self.normalize(datasrc,datamin,datamax,mask)
 		if self.debug:
 			print(datanorm.min() , datanorm.max(), datamin, datamax)
-		datanormextrap = self.drown_field(datanorm)
+		datanormextrap = self.drown_field(datanorm,mask)
 		dataextrap = self.unnormalize(datanormextrap,datamin,datamax)
 		return dataextrap
 
 
-	def drown_field(self,data):
+	def drown_field(self,data,mask):
 		''' drown_field is a wrapper around the fortran code fill_msg_grid.
 		depending on the output geometry, applies land extrapolation on 1 or N levels'''
 		if self.geometry == 'surface':
@@ -243,6 +249,7 @@ class obc_vectvariable():
 					_plt.title('normalized before drown')
 				tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 				self.nscan, self.epsx, self.relc)
+				#tmpout = _mod_drown_py.mod_drown.drown(0,tmpin,mask[kz,:,:].T,nb_inc=200,nb_smooth=40)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
 					_plt.figure() ; _plt.contourf(tmpout.transpose(),40) ; _plt.colorbar() ; 
@@ -251,6 +258,7 @@ class obc_vectvariable():
 			tmpin = data[:,:].transpose()
 			tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 			self.nscan, self.epsx, self.relc)
+			#tmpout = _mod_drown_py.mod_drown.drown(0,tmpin,mask[:,:].T,nb_inc=200,nb_smooth=40)
 			data[:,:] = tmpout.transpose()
 		return data
 
