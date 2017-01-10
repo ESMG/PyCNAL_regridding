@@ -1,6 +1,7 @@
 import numpy as _np
 import ESMF as _ESMF
 from brushcutter import lib_ioncdf as _ncdf
+from brushcutter import lib_common as _lc
 #from brushcutter import fill_msg_grid as _fill
 import fill_msg_grid as _fill
 #import creeping_sea as _creeping_sea
@@ -92,10 +93,49 @@ class obc_vectvariable():
 		self.data_u_out[:] = value_u
 		self.data_v_out[:] = value_v
 		return None
-		
+
+	def set_vertical_profile(self,top_value,bottom_value,shape='linear',depth_vector=None):
+		''' create a vertical profile '''
+		if depth_vector is not None:
+			self.depth_dz_from_vector(depth_vector)
+		self.data = self.allocate()
+		if shape == 'linear':
+			slope = ( top_value - bottom_value) / (depth_vector[0] - depth_vector[-1])
+			for kz in _np.arange(self.nz):
+				self.data[kz,:,:] = bottom_value + slope * (depth_vector[kz] - depth_vector[-1])
+
+		return None
+
+	def set_horizontal_shear(self,value_1,value_n,shape='linear',direction='x',depth_vector=None):
+		if depth_vector is not None:
+			self.depth_dz_from_vector(depth_vector)
+		self.data = self.allocate()
+		if shape == 'linear':
+			if direction == 'x':
+				dx = (value_n - value_1) / self.nx
+				if depth_vector is not None:
+					for kz in _np.arange(self.nz):
+						for ky in _np.arange(self.ny):
+							self.data[kz,ky,:] = _np.arange(value_1,value_n,dx)
+				else:
+					for ky in _np.arange(self.ny):
+						self.data[ky,:] = _np.arange(value_1,value_n,dx)
+			if direction == 'y':
+				dy = (value_n - value_1) / self.ny
+				if depth_vector is not None:
+					for kz in _np.arange(self.nz):
+						for kx in _np.arange(self.nx):
+							self.data[kz,:,kx] = _np.arange(value_1,value_n,dy)
+				else:
+					for kx in _np.arange(self.nx):
+						self.data[:,kx] = _np.arange(value_1,value_n,dy)
+
+		return None
+
 	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown=True,maskfile=None,maskvar=None, \
 	                     missing_value=None,from_global=True,depthname='z', \
-	                     timename='time',coord_names=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',interpolator=None):
+	                     timename='time',coord_names=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',\
+			     interpolator=None,autocrop=True):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -114,32 +154,41 @@ class obc_vectvariable():
 		* from_global=True : if input file is global leave to true. If input is regional, set to False.
 		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
-		# 1. read the original field
+		# 1. Create ESMF source grid
+		self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+
+		# 2. read the original field
 		datasrc_u = _ncdf.read_field(filename,variable_u,frame=frame)
 		datasrc_v = _ncdf.read_field(filename,variable_v,frame=frame)
+		if self.geometry == 'surface':
+			datasrc_u = datasrc_u[:,self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			datasrc_v = datasrc_v[:,self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			self.depth, self.nz, self.dz = _ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
+		else:
+			datasrc_u = datasrc_u[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			datasrc_v = datasrc_v[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			self.depth=0.; self.nz=1; self.dz=0.
+		# read time 
 		try:
 			self.timesrc = _ncdf.read_time(filename,timename,frame=frame)
 		except:
 			print('input data time variable not read')
-		if self.geometry == 'surface':
-			self.depth, self.nz, self.dz = _ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
-		else:
-			self.depth=0.; self.nz=1; self.dz=0.
 			
-		# 2. Create ESMF source grid
-		self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords)
-	
 		# TODO !! make rotation to east,north from source grid.
 
 		# 3. perform extrapolation over land
+		print('drown')
+		start = ptime.time()
 		if drown is True:
 			dataextrap_u = self.perform_extrapolation(datasrc_u,maskfile,maskvar,missing_value)
 			dataextrap_v = self.perform_extrapolation(datasrc_v,maskfile,maskvar,missing_value)
 		else:
 			dataextrap_u = datasrc_u.copy()
 			dataextrap_v = datasrc_v.copy()
-		# 4. ESMF interpolation
+		end = ptime.time()
+		print('end drown', end-start)
 
+		# 4. ESMF interpolation
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 
@@ -154,19 +203,18 @@ class obc_vectvariable():
 		else:
 			regridme = interpolator
 
-
 		self.data_u = self.perform_interpolation(dataextrap_u,regridme,field_src,self.field_target,self.use_locstream)
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,self.field_target,self.use_locstream)
-
-		# free memory (ESMPy has memory leak)
-		self.gridsrc.destroy()
-		field_src.destroy()
 
 		# vector rotation to output grid
 		self.data_u_out = self.data_u * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \
 		                  self.data_v * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1])
 		self.data_v_out = self.data_v * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) - \
 		                  self.data_u * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) 
+
+		# free memory (ESMPy has memory leak)
+		self.gridsrc.destroy()
+		field_src.destroy()
 		return regridme
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
@@ -308,10 +356,10 @@ class obc_vectvariable():
 			dst_obc_variable.data_v_out  = self.data_v_out[dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
 			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
 
-		dst_obc_variable.timesrc     = self.timesrc
+		dst_obc_variable.timesrc = self.timesrc
 		return None
 
-	def create_source_grid(self,filename,from_global,coord_names,x_coords=None,y_coords=None):
+	def create_source_grid(self,filename,from_global,coord_names,x_coords=None,y_coords=None,autocrop=True):
 		''' create ESMF grid object for source grid '''
 		# new way to create source grid
 		# TO DO : move into separate function, has to be called before drown
@@ -329,9 +377,20 @@ class obc_vectvariable():
 			else:
 				lon_src = lons ; lat_src = lats
 
-		ny_src, nx_src = lon_src.shape
+		# autocrop
+		if autocrop:
+			self.imin_src, self.imax_src, self.jmin_src, self.jmax_src = \
+			_lc.find_subset(self.grid_target,lon_src,lat_src)
+			lon_src = lon_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			lat_src = lat_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			print 'subset shape is ', lon_src.shape
 
-		if from_global:
+		ny_src, nx_src = lon_src.shape
+		if not autocrop:
+			self.imin_src = 0 ; self.imax_src = nx_src 
+			self.jmin_src = 0 ; self.jmax_src = ny_src 
+
+		if from_global and not autocrop:
 			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
 			self.gtype = 1 # 1 = periodic for drown NCL
 			self.kew   = 0 # 0 = periodic for drown sosie
