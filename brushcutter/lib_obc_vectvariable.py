@@ -2,10 +2,8 @@ import numpy as _np
 import ESMF as _ESMF
 from brushcutter import lib_ioncdf as _ncdf
 from brushcutter import lib_common as _lc
-#from brushcutter import fill_msg_grid as _fill
 import fill_msg_grid as _fill
-#import creeping_sea as _creeping_sea
-#import mod_drown_py as _mod_drown_py
+import mod_drown_sosie as _mod_drown_sosie
 import matplotlib.pylab as _plt
 
 import time as ptime
@@ -61,6 +59,7 @@ class obc_vectvariable():
 
 		# default parameters for land extrapolation
 		# can be modified by changing the attribute of object
+		self.drown_methods = ['sosie','ncl']
 		self.xmsg = -99
 		self.guess = 1                # guess = 1 zonal mean
 		self.gtype = 1                # cyclic or not
@@ -179,9 +178,9 @@ class obc_vectvariable():
 		# 3. perform extrapolation over land
 		print('drown')
 		start = ptime.time()
-		if drown is True:
-			dataextrap_u = self.perform_extrapolation(datasrc_u,maskfile,maskvar,missing_value)
-			dataextrap_v = self.perform_extrapolation(datasrc_v,maskfile,maskvar,missing_value)
+		if drown in self.drown_methods:
+			dataextrap_u = self.perform_extrapolation(datasrc_u,maskfile,maskvar,missing_value,drown)
+			dataextrap_v = self.perform_extrapolation(datasrc_v,maskfile,maskvar,missing_value,drown)
 		else:
 			dataextrap_u = datasrc_u.copy()
 			dataextrap_v = datasrc_v.copy()
@@ -237,10 +236,11 @@ class obc_vectvariable():
 			_plt.figure() ; _plt.contourf(mask[0,:,:],[0.99,1.01]) ; _plt.colorbar() ; _plt.title('land sea mask')
 		return mask
 
-	def perform_extrapolation(self,datasrc,maskfile,maskvar,missing_value):
+	def perform_extrapolation(self,datasrc,maskfile,maskvar,missing_value,drown):
 		# 2.1 read mask or compute it
 		if maskfile is not None:
 			mask = _ncdf.read_field(maskfile,maskvar)
+			# to do, needs imin/imax_src,...
 		else:
 			mask = self.compute_mask_from_missing_value(datasrc,missing_value=missing_value)
 		# 2.2 mask the source data
@@ -256,12 +256,12 @@ class obc_vectvariable():
 		datanorm = self.normalize(datasrc,datamin,datamax,mask)
 		if self.debug:
 			print(datanorm.min() , datanorm.max(), datamin, datamax)
-		datanormextrap = self.drown_field(datanorm,mask)
+		datanormextrap = self.drown_field(datanorm,mask,drown)
 		dataextrap = self.unnormalize(datanormextrap,datamin,datamax)
 		return dataextrap
 
 
-	def drown_field(self,data,mask):
+	def drown_field(self,data,mask,drown):
 		''' drown_field is a wrapper around the fortran code fill_msg_grid.
 		depending on the output geometry, applies land extrapolation on 1 or N levels'''
 		if self.geometry == 'surface':
@@ -271,20 +271,24 @@ class obc_vectvariable():
 					tmpin_plt = _np.ma.masked_values(tmpin,self.xmsg)
 					_plt.figure() ; _plt.contourf(tmpin_plt.transpose(),40) ; _plt.colorbar() ; 
 					_plt.title('normalized before drown')
-				tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
-				self.nscan, self.epsx, self.relc)
-				#tmpout = _creeping_sea.cslf(tmpin,self.xmsg,-1.,1.,True)
-				#tmpout = _mod_drown_py.mod_drown.drown(0,tmpin,mask[kz,:,:].T,nb_inc=200,nb_smooth=40)
+				if drown == 'ncl':
+					tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
+					self.nscan, self.epsx, self.relc)
+				elif drown == 'sosie':
+					tmpout = _mod_drown_sosie.mod_drown.drown(0,tmpin,mask[kz,:,:].T,\
+					nb_inc=200,nb_smooth=40)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
 					_plt.figure() ; _plt.contourf(tmpout.transpose(),40) ; _plt.colorbar() ; 
 					_plt.title('normalized after drown') 
 		elif self.geometry == 'line':
 			tmpin = data[:,:].transpose()
-			tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
-			self.nscan, self.epsx, self.relc)
-			##tmpout = _creeping_sea.cslf(tmpin,self.xmsg,-1.,1.,self.gtype)
-			#tmpout = _mod_drown_py.mod_drown.drown(0,tmpin,mask[:,:].T,nb_inc=200,nb_smooth=40)
+			if drown == 'ncl':
+				tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
+				self.nscan, self.epsx, self.relc)
+			elif drown == 'sosie':
+				tmpout = _mod_drown_sosie.mod_drown.drown(0,tmpin,mask[:,:].T,\
+				nb_inc=200,nb_smooth=40)
 			data[:,:] = tmpout.transpose()
 		return data
 
