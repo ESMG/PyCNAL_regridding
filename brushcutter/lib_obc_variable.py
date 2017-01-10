@@ -160,7 +160,6 @@ class obc_variable():
 		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
 		# 1. read the original field
-		print('read')
 		datasrc = _ncdf.read_field(filename,variable,frame=frame)
 		try:
 			self.timesrc = _ncdf.read_time(filename,timename,frame=frame)
@@ -171,7 +170,10 @@ class obc_variable():
 		else:
 			self.depth=0.; self.nz=1; self.dz=0.
 			
-		# 2. perform extrapolation over land
+		# 2. Create ESMF source grid
+		self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords)
+
+		# 3. perform extrapolation over land
 		print('drown')
 		start = ptime.time()
 		if drown is True:
@@ -180,44 +182,8 @@ class obc_variable():
 			dataextrap = datasrc.copy()
 		end = ptime.time()
 		print('end drown', end-start)
-		# 3. ESMF interpolation
-		# Create source grid
 
-		# new way to create source grid
-		# TO DO : move into separate function, has to be called before drown
-		# so that we know the periodicity
-		start = ptime.time()
-		if x_coords is not None and y_coords is not None:
-			lon_src = x_coords
-			lat_src = y_coords
-		else:
-			lons = _ncdf.read_field(filename,coord_names[0])
-			lats = _ncdf.read_field(filename,coord_names[1])
-			if len(lons.shape) == 1:
-				lon_src,lat_src = _np.meshgrid(lons,lats)
-			else:
-				lon_src = lons
-				lat_src = lats
-
-		nx_src = lon_src.shape[1]
-		ny_src = lon_src.shape[0]
-
-		if from_global:
-			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
-			self.gtype = 1 # 1 = periodic
-		else:
-			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
-			self.gtype = 0 # 1 = periodic 
-		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
-		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
-		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
-
-		# original from RD
-		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
-		#is_sphere=from_global,coord_names=coord_names)
-		end = ptime.time()
-		print(end-start)
-
+		# 4. ESMF interpolation
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 
@@ -363,3 +329,41 @@ class obc_variable():
 
 		dst_obc_variable.timesrc = self.timesrc
 		return None
+
+	def create_source_grid(self,filename,from_global,coord_names,x_coords=None,y_coords=None):
+		''' create ESMF grid object for source grid '''
+		# new way to create source grid
+		# TO DO : move into separate function, has to be called before drown
+		# so that we know the periodicity
+
+		# Allow to provide lon/lat from existing array
+		if x_coords is not None and y_coords is not None:
+			lon_src = x_coords
+			lat_src = y_coords
+		else:
+			lons = _ncdf.read_field(filename,coord_names[0])
+			lats = _ncdf.read_field(filename,coord_names[1])
+			if len(lons.shape) == 1:
+				lon_src,lat_src = _np.meshgrid(lons,lats)
+			else:
+				lon_src = lons ; lat_src = lats
+
+		ny_src, nx_src = lon_src.shape
+
+		if from_global:
+			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
+			self.gtype = 1 # 1 = periodic for drown NCL
+			self.kew   = 0 # 0 = periodic for drown sosie
+		else:
+			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+			self.gtype =  0 #  1 = non periodic for drown NCL
+			self.kew   = -1 # -1 = non periodic for drown sosie
+		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
+		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
+
+		# original from RD
+		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
+		#is_sphere=from_global,coord_names=coord_names)
+		return None
+

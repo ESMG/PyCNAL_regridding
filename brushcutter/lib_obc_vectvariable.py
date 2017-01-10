@@ -3,8 +3,9 @@ import ESMF as _ESMF
 from brushcutter import lib_ioncdf as _ncdf
 #from brushcutter import fill_msg_grid as _fill
 import fill_msg_grid as _fill
-import matplotlib.pylab as _plt
+#import creeping_sea as _creeping_sea
 #import mod_drown_py as _mod_drown_py
+import matplotlib.pylab as _plt
 
 import time as ptime
 
@@ -123,49 +124,22 @@ class obc_vectvariable():
 		if self.geometry == 'surface':
 			self.depth, self.nz, self.dz = _ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
 		else:
-			self.depth=0.0; self.nz=1; self.dz=1 
+			self.depth=0.; self.nz=1; self.dz=0.
 			
+		# 2. Create ESMF source grid
+		self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords)
+	
 		# TODO !! make rotation to east,north from source grid.
 
-		# 2. perform extrapolation over land
+		# 3. perform extrapolation over land
 		if drown is True:
 			dataextrap_u = self.perform_extrapolation(datasrc_u,maskfile,maskvar,missing_value)
 			dataextrap_v = self.perform_extrapolation(datasrc_v,maskfile,maskvar,missing_value)
 		else:
 			dataextrap_u = datasrc_u.copy()
 			dataextrap_v = datasrc_v.copy()
-		# 3. ESMF interpolation
-		# Create source grid
-		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
-		#is_sphere=from_global,coord_names=coord_names)
+		# 4. ESMF interpolation
 
-		# new way to create source grid
-		start = ptime.time()
-		if x_coords is not None and y_coords is not None:
-			lon_src = x_coords
-			lat_src = y_coords
-		else:
-			lons = _ncdf.read_field(filename,coord_names[0])
-			lats = _ncdf.read_field(filename,coord_names[1])
-			if len(lons.shape) == 1:
-				lon_src,lat_src = _np.meshgrid(lons,lats)
-			else:
-				lon_src = lons
-				lat_src = lats
-
-		nx_src = lon_src.shape[1]
-		ny_src = lon_src.shape[0]
-
-		if from_global:
-			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
-		else:
-			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
-		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
-		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
-		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
-		end = ptime.time()
-		print(end-start)
-	
 		# Create a field on the centers of the grid
 		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 
@@ -249,6 +223,7 @@ class obc_vectvariable():
 					_plt.title('normalized before drown')
 				tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 				self.nscan, self.epsx, self.relc)
+				#tmpout = _creeping_sea.cslf(tmpin,self.xmsg,-1.,1.,True)
 				#tmpout = _mod_drown_py.mod_drown.drown(0,tmpin,mask[kz,:,:].T,nb_inc=200,nb_smooth=40)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
@@ -258,6 +233,7 @@ class obc_vectvariable():
 			tmpin = data[:,:].transpose()
 			tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 			self.nscan, self.epsx, self.relc)
+			##tmpout = _creeping_sea.cslf(tmpin,self.xmsg,-1.,1.,self.gtype)
 			#tmpout = _mod_drown_py.mod_drown.drown(0,tmpin,mask[:,:].T,nb_inc=200,nb_smooth=40)
 			data[:,:] = tmpout.transpose()
 		return data
@@ -334,3 +310,41 @@ class obc_vectvariable():
 
 		dst_obc_variable.timesrc     = self.timesrc
 		return None
+
+	def create_source_grid(self,filename,from_global,coord_names,x_coords=None,y_coords=None):
+		''' create ESMF grid object for source grid '''
+		# new way to create source grid
+		# TO DO : move into separate function, has to be called before drown
+		# so that we know the periodicity
+
+		# Allow to provide lon/lat from existing array
+		if x_coords is not None and y_coords is not None:
+			lon_src = x_coords
+			lat_src = y_coords
+		else:
+			lons = _ncdf.read_field(filename,coord_names[0])
+			lats = _ncdf.read_field(filename,coord_names[1])
+			if len(lons.shape) == 1:
+				lon_src,lat_src = _np.meshgrid(lons,lats)
+			else:
+				lon_src = lons ; lat_src = lats
+
+		ny_src, nx_src = lon_src.shape
+
+		if from_global:
+			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
+			self.gtype = 1 # 1 = periodic for drown NCL
+			self.kew   = 0 # 0 = periodic for drown sosie
+		else:
+			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+			self.gtype =  0 #  1 = non periodic for drown NCL
+			self.kew   = -1 # -1 = non periodic for drown sosie
+		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
+		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
+
+		# original from RD
+		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
+		#is_sphere=from_global,coord_names=coord_names)
+		return None
+
