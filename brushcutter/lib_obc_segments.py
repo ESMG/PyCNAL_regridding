@@ -100,6 +100,7 @@ class obc_segment():
 		        #                     coord_names=coord_names)
 		elif target_model == 'ROMS':
 			coord_names=["lon_rho", "lat_rho"]
+			self.angle_dx = _ncdf.read_field(target_grid_file,'angle')
 
 			# import target grid into ESMF grid object
 			self.grid_target = _ESMF.Grid(filename=target_grid_file,filetype=_ESMF.FileFormat.GRIDSPEC,

@@ -131,7 +131,7 @@ class obc_vectvariable():
 
 		return None
 
-	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown=True,maskfile=None,maskvar=None, \
+	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown='sosie',maskfile=None,maskvar=None, \
 	                     missing_value=None,from_global=True,depthname='z', \
 	                     timename='time',coord_names=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',\
 			     interpolator=None,autocrop=True):
@@ -281,6 +281,7 @@ class obc_vectvariable():
 				if self.debug and kz == 0:
 					_plt.figure() ; _plt.contourf(tmpout.transpose(),40) ; _plt.colorbar() ; 
 					_plt.title('normalized after drown') 
+					_plt.show()
 		elif self.geometry == 'line':
 			tmpin = data[:,:].transpose()
 			if drown == 'ncl':

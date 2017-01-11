@@ -48,5 +48,7 @@ def find_subset(target_grid,lon_src,lat_src):
 	imax = min(imax+5,nx)
 	jmax = min(jmax+5,ny)
 
+	print('Subset source grid : full dimension is ', nx , ny, ' subset is ', imin, imax, jmin, jmax)
+
 	return imin, imax, jmin, jmax
 

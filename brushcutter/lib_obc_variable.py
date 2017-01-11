@@ -211,8 +211,8 @@ class obc_variable():
 				mask[_np.where(data == missing_value)] = 0
 			else:
 				exit('Cannot create mask, please provide a missing_value, or maskfile')
-		if self.debug:
-			_plt.figure() ; _plt.contourf(mask[0,:,:],[0.99,1.01]) ; _plt.colorbar() ; _plt.title('land sea mask')
+		#if self.debug:
+		#	_plt.figure() ; _plt.contourf(mask[0,:,:],[0.99,1.01]) ; _plt.colorbar() ; _plt.title('land sea mask')
 		return mask
 
 	def perform_extrapolation(self,datasrc,maskfile,maskvar,missing_value,drown):
@@ -260,6 +260,7 @@ class obc_variable():
 				if self.debug and kz == 0:
 					_plt.figure() ; _plt.contourf(tmpout.transpose(),40) ; _plt.colorbar() ; 
 					_plt.title('normalized after drown') 
+					_plt.show()
 		elif self.geometry == 'line':
 			tmpin = data[:,:].transpose()
 			if drown == 'ncl':
