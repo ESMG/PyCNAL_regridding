@@ -7,16 +7,18 @@ momgrd = '../data/ocean_hgrid_v2.nc'
 domain = obc_segment('domain', momgrd,istart=0,iend=360,jstart=0,  jend=960)
 
 # ---------- define variables on each segment ------------------
-temp_domain = obc_variable(domain,'temp',geometry='surface',obctype='radiation',use_locstream=False)
-salt_domain = obc_variable(domain,'salt',geometry='surface',obctype='radiation',use_locstream=False)
-ssh_domain  = obc_variable(domain,'ssh' ,geometry='line'   ,obctype='flather',use_locstream=False)
-vel_domain  = obc_vectvariable(domain,'u','v',geometry='surface',obctype='radiation',use_locstream=False)
+temp_domain = obc_variable(domain,'temp',geometry='surface',obctype='radiation')
+salt_domain = obc_variable(domain,'salt',geometry='surface',obctype='radiation')
+ssh_domain  = obc_variable(domain,'ssh' ,geometry='line'   ,obctype='flather')
+vel_domain  = obc_vectvariable(domain,'u','v',geometry='surface',obctype='radiation')
 
-# ---------- interpolate T/S from WOA monthly file, frame = 0 (jan) and using locstream (x2 speedup)
-temp_domain.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'],method='patch')
-salt_domain.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'],method='patch')
-ssh_domain.interpolate_from(sodafile ,'ssh' ,frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'],method='patch')
-vel_domain.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names_u=['xu_ocean','yu_ocean'],coord_names_v=['xu_ocean','yu_ocean'],method='patch')
+# ---------- interpolate T/S from SODA file -------------------
+interp_t2s = temp_domain.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'],method='patch')
+salt_domain.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'],method='patch',interpolator=interp_t2s)
+ssh_domain.interpolate_from(sodafile ,'ssh' ,frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'],method='patch',interpolator=interp_t2s)
+# we can't reuse the previous interpolator because the source grid changes
+interp_u2s, interp_v2s = vel_domain.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names_u=['xu_ocean','yu_ocean'], \
+coord_names_v=['xu_ocean','yu_ocean'],method='patch')
 
 # ---------- list segments and variables to be written -------
 list_segments = [domain]
