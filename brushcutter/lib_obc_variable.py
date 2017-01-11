@@ -147,7 +147,10 @@ class obc_variable():
 		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
 		# 1. Create ESMF source grid
-		self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+		if maskfile is not None:
+			self.gridsrc = self.create_source_grid(maskfile,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+		else:
+			self.gridsrc = self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
 
 		# 2. read the original field
 		datasrc = _ncdf.read_field(filename,variable,frame=frame)
@@ -372,19 +375,19 @@ class obc_variable():
 			self.jmin_src = 0 ; self.jmax_src = ny_src 
 
 		if from_global and not autocrop:
-			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
+			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
 			self.gtype = 1 # 1 = periodic for drown NCL
 			self.kew   = 0 # 0 = periodic for drown sosie
 		else:
-			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
 			self.gtype =  0 #  1 = non periodic for drown NCL
 			self.kew   = -1 # -1 = non periodic for drown sosie
-		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
-		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
-		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
+		gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+		gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
+		gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
 
 		# original from RD
 		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
 		#is_sphere=from_global,coord_names=coord_names)
-		return None
+		return gridsrc
 

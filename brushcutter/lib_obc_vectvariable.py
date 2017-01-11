@@ -133,8 +133,8 @@ class obc_vectvariable():
 
 	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown='sosie',maskfile=None,maskvar=None, \
 	                     missing_value=None,from_global=True,depthname='z', \
-	                     timename='time',coord_names=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',\
-			     interpolator=None,autocrop=True):
+	                     timename='time',coord_names_u=['lon','lat'],coord_names_v=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',\
+			     interpolator_u=None,interpolator_v=None,autocrop=True):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -153,8 +153,13 @@ class obc_vectvariable():
 		* from_global=True : if input file is global leave to true. If input is regional, set to False.
 		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
-		# 1. Create ESMF source grid
-		self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+		# 1. Create ESMF source grids
+		if maskfile is not None:
+			self.gridsrc_u = self.create_source_grid(maskfile,from_global,coord_names_u,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			self.gridsrc_v = self.create_source_grid(maskfile,from_global,coord_names_v,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+		else:
+			self.gridsrc_u = self.create_source_grid(filename,from_global,coord_names_u,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			self.gridsrc_v = self.create_source_grid(filename,from_global,coord_names_v,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
 
 		# 2. read the original field
 		datasrc_u = _ncdf.read_field(filename,variable_u,frame=frame)
@@ -189,21 +194,32 @@ class obc_vectvariable():
 
 		# 4. ESMF interpolation
 		# Create a field on the centers of the grid
-		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
+		field_src_u = _ESMF.Field(self.gridsrc_u, staggerloc=_ESMF.StaggerLoc.CENTER)
+		field_src_v = _ESMF.Field(self.gridsrc_v, staggerloc=_ESMF.StaggerLoc.CENTER)
 
 		# Set up a regridding object between source and destination
-		if interpolator is None:
+		if interpolator_u is None:
 			if method == 'bilinear':
-				regridme = _ESMF.Regrid(field_src, self.field_target,
+				regridme_u = _ESMF.Regrid(field_src_u, self.field_target,
 				                        regrid_method=_ESMF.RegridMethod.BILINEAR)
 			elif method == 'patch':
-				regridme = _ESMF.Regrid(field_src, self.field_target,
+				regridme_u = _ESMF.Regrid(field_src_u, self.field_target,
 				                        regrid_method=_ESMF.RegridMethod.PATCH)
 		else:
-			regridme = interpolator
+			regridme_u = interpolator_u
 
-		self.data_u = self.perform_interpolation(dataextrap_u,regridme,field_src,self.field_target,self.use_locstream)
-		self.data_v = self.perform_interpolation(dataextrap_v,regridme,field_src,self.field_target,self.use_locstream)
+		if interpolator_v is None:
+			if method == 'bilinear':
+				regridme_v = _ESMF.Regrid(field_src_v, self.field_target,
+				                        regrid_method=_ESMF.RegridMethod.BILINEAR)
+			elif method == 'patch':
+				regridme_v = _ESMF.Regrid(field_src_v, self.field_target,
+				                        regrid_method=_ESMF.RegridMethod.PATCH)
+		else:
+			regridme_v = interpolator_v
+
+		self.data_u = self.perform_interpolation(dataextrap_u,regridme_u,field_src_u,self.field_target,self.use_locstream)
+		self.data_v = self.perform_interpolation(dataextrap_v,regridme_v,field_src_v,self.field_target,self.use_locstream)
 
 		# vector rotation to output grid
 		self.data_u_out = self.data_u * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \
@@ -212,9 +228,11 @@ class obc_vectvariable():
 		                  self.data_u * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) 
 
 		# free memory (ESMPy has memory leak)
-		self.gridsrc.destroy()
-		field_src.destroy()
-		return regridme
+		self.gridsrc_u.destroy()
+		self.gridsrc_v.destroy()
+		field_src_u.destroy()
+		field_src_v.destroy()
+		return regridme_u, regridme_v
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
 		''' compute mask from missing value :
@@ -232,8 +250,8 @@ class obc_vectvariable():
 				mask[_np.where(data == missing_value)] = 0
 			else:
 				exit('Cannot create mask, please provide a missing_value, or maskfile')
-		if self.debug:
-			_plt.figure() ; _plt.contourf(mask[0,:,:],[0.99,1.01]) ; _plt.colorbar() ; _plt.title('land sea mask')
+		#if self.debug:
+		#	_plt.figure() ; _plt.contourf(mask[0,:,:],[0.99,1.01]) ; _plt.colorbar() ; _plt.title('land sea mask')
 		return mask
 
 	def perform_extrapolation(self,datasrc,maskfile,maskvar,missing_value,drown):
@@ -397,19 +415,19 @@ class obc_vectvariable():
 			self.jmin_src = 0 ; self.jmax_src = ny_src 
 
 		if from_global and not autocrop:
-			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
+			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
 			self.gtype = 1 # 1 = periodic for drown NCL
 			self.kew   = 0 # 0 = periodic for drown sosie
 		else:
-			self.gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
 			self.gtype =  0 #  1 = non periodic for drown NCL
 			self.kew   = -1 # -1 = non periodic for drown sosie
-		self.gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
-		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
-		self.gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
+		gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+		gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
+		gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
 
 		# original from RD
 		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
 		#is_sphere=from_global,coord_names=coord_names)
-		return None
+		return gridsrc
 
