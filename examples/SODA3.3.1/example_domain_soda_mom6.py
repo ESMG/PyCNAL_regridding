@@ -16,7 +16,7 @@ vel_domain  = obc_vectvariable(domain,'u','v',geometry='surface',obctype='radiat
 temp_domain.interpolate_from(sodafile,'temp',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
 salt_domain.interpolate_from(sodafile,'salt',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
 ssh_domain.interpolate_from(sodafile ,'ssh' ,frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
-vel_domain.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names=['xu_ocean','yu_ocean'])
+vel_domain.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names_u=['xu_ocean','yu_ocean'],coord_names_v=['xu_ocean','yu_ocean'])
 
 # ---------- list segments and variables to be written -------
 list_segments = [domain]

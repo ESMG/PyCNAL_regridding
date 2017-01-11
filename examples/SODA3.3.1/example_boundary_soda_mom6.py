@@ -42,9 +42,9 @@ zeta_south.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',coord_na
 zeta_north.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
 zeta_west.interpolate_from(sodafile,'ssh',frame=0,depthname='st_ocean',coord_names=['xt_ocean','yt_ocean'])
 
-vel_south.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names=['xu_ocean','yu_ocean'])
-vel_north.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names=['xu_ocean','yu_ocean'])
-vel_west.interpolate_from(sodafile ,'u','v',frame=0,depthname='st_ocean',coord_names=['xu_ocean','yu_ocean'])
+vel_south.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names_u=['xu_ocean','yu_ocean'],coord_names_v=['xu_ocean','yu_ocean'])
+vel_north.interpolate_from(sodafile,'u','v',frame=0,depthname='st_ocean',coord_names_u=['xu_ocean','yu_ocean'],coord_names_v=['xu_ocean','yu_ocean'])
+vel_west.interpolate_from(sodafile ,'u','v',frame=0,depthname='st_ocean',coord_names_u=['xu_ocean','yu_ocean'],coord_names_v=['xu_ocean','yu_ocean'])
 
 # ---------- list segments and variables to be written -------
 list_segments = [south,north,west]
