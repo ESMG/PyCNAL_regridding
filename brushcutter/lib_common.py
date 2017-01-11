@@ -29,24 +29,34 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
 	return dist
 
 def find_subset(target_grid,lon_src,lat_src):
-	lon_min_tgt = target_grid.coords[0][0].min()
-	lon_max_tgt = target_grid.coords[0][0].max()
-	lat_min_tgt = target_grid.coords[0][1].min()
-	lat_max_tgt = target_grid.coords[0][1].max()
 
 	ny,nx = lon_src.shape
 
-	dist_2_bottom_left_corner = distance_on_unit_sphere(lon_min_tgt,lat_min_tgt,lon_src,lat_src)
-	jmin, imin = _np.unravel_index(dist_2_bottom_left_corner.argmin(),dist_2_bottom_left_corner.shape)
+	lon_bl_tgt = target_grid.coords[0][0][0,0] ; lat_bl_tgt = target_grid.coords[0][1][0,0] # bottom left
+	lon_br_tgt = target_grid.coords[0][0][-1,0] ; lat_br_tgt = target_grid.coords[0][1][-1,0] # bottom right
+	lon_ul_tgt = target_grid.coords[0][0][0,-1] ; lat_ul_tgt = target_grid.coords[0][1][0,-1] # upper left
+	lon_ur_tgt = target_grid.coords[0][0][-1,-1] ; lat_ur_tgt = target_grid.coords[0][1][-1,-1] # upper right
 	
-	dist_2_upper_right_corner = distance_on_unit_sphere(lon_max_tgt,lat_max_tgt,lon_src,lat_src)
-	jmax, imax = _np.unravel_index(dist_2_upper_right_corner.argmin(), dist_2_upper_right_corner.shape)
+	dist_2_bottom_left_corner = distance_on_unit_sphere(lon_bl_tgt,lat_bl_tgt,lon_src,lat_src)
+	j_bl_src, i_bl_src = _np.unravel_index(dist_2_bottom_left_corner.argmin(),dist_2_bottom_left_corner.shape)
+
+	dist_2_bottom_right_corner = distance_on_unit_sphere(lon_br_tgt,lat_br_tgt,lon_src,lat_src)
+	j_br_src, i_br_src = _np.unravel_index(dist_2_bottom_right_corner.argmin(),dist_2_bottom_right_corner.shape)
+
+	dist_2_upper_left_corner = distance_on_unit_sphere(lon_ul_tgt,lat_ul_tgt,lon_src,lat_src)
+	j_ul_src, i_ul_src = _np.unravel_index(dist_2_upper_left_corner.argmin(),dist_2_upper_left_corner.shape)
+
+	dist_2_upper_right_corner = distance_on_unit_sphere(lon_ur_tgt,lat_ur_tgt,lon_src,lat_src)
+	j_ur_src, i_ur_src = _np.unravel_index(dist_2_upper_right_corner.argmin(),dist_2_upper_right_corner.shape)
+
+	imin = min(i_bl_src,i_ul_src) ; imax = max(i_br_src,i_ur_src)
+	jmin = min(j_bl_src,j_br_src) ; jmax = max(j_ul_src,j_ur_src)
 
 	# for safety
-	imin = max(imin-5,0)
-	jmin = max(jmin-5,0)
-	imax = min(imax+5,nx)
-	jmax = min(jmax+5,ny)
+	imin = max(imin-2,0)
+	jmin = max(jmin-2,0)
+	imax = min(imax+2,nx)
+	jmax = min(jmax+2,ny)
 
 	print('Subset source grid : full dimension is ', nx , ny, ' subset is ', imin, imax, jmin, jmax)
 

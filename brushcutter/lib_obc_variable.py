@@ -184,9 +184,11 @@ class obc_variable():
 		if interpolator is None:
 			if method == 'bilinear':
 				regridme = _ESMF.Regrid(field_src, self.field_target,
+				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.BILINEAR)
 			elif method == 'patch':
 				regridme = _ESMF.Regrid(field_src, self.field_target,
+				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.PATCH)
 		else:
 			regridme = interpolator
@@ -220,7 +222,7 @@ class obc_variable():
 
 	def perform_extrapolation(self,datasrc,maskfile,maskvar,missing_value,drown):
 		# 2.1 read mask or compute it
-		if maskfile is not None:
+		if maskvar is not None:
 			mask = _ncdf.read_field(maskfile,maskvar)
 			# to do, needs imin/imax_src,...
 		else:
@@ -257,7 +259,7 @@ class obc_variable():
 					tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 					self.nscan, self.epsx, self.relc)
 				elif drown == 'sosie':
-					tmpout = _mod_drown_sosie.mod_drown.drown(0,tmpin,mask[kz,:,:].T,\
+					tmpout = _mod_drown_sosie.mod_drown.drown(self.kew,tmpin,mask[kz,:,:].T,\
 					nb_inc=200,nb_smooth=40)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
@@ -270,7 +272,7 @@ class obc_variable():
 				tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 				self.nscan, self.epsx, self.relc)
 			elif drown == 'sosie':
-				tmpout = _mod_drown_sosie.mod_drown.drown(0,tmpin,mask[:,:].T,\
+				tmpout = _mod_drown_sosie.mod_drown.drown(self.kew,tmpin,mask[:,:].T,\
 				nb_inc=200,nb_smooth=40)
 			data[:,:] = tmpout.transpose()
 		return data

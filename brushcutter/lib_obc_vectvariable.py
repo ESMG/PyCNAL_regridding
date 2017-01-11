@@ -198,27 +198,35 @@ class obc_vectvariable():
 		field_src_v = _ESMF.Field(self.gridsrc_v, staggerloc=_ESMF.StaggerLoc.CENTER)
 
 		# Set up a regridding object between source and destination
+		print('create regridding for u')
 		if interpolator_u is None:
 			if method == 'bilinear':
 				regridme_u = _ESMF.Regrid(field_src_u, self.field_target,
+				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.BILINEAR)
 			elif method == 'patch':
 				regridme_u = _ESMF.Regrid(field_src_u, self.field_target,
+				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.PATCH)
 		else:
 			regridme_u = interpolator_u
 
+		print('create regridding for v')
 		if interpolator_v is None:
 			if method == 'bilinear':
 				regridme_v = _ESMF.Regrid(field_src_v, self.field_target,
+				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.BILINEAR)
 			elif method == 'patch':
 				regridme_v = _ESMF.Regrid(field_src_v, self.field_target,
+				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.PATCH)
 		else:
 			regridme_v = interpolator_v
 
+		print('regridding u')
 		self.data_u = self.perform_interpolation(dataextrap_u,regridme_u,field_src_u,self.field_target,self.use_locstream)
+		print('regridding v')
 		self.data_v = self.perform_interpolation(dataextrap_v,regridme_v,field_src_v,self.field_target,self.use_locstream)
 
 		# vector rotation to output grid
@@ -256,7 +264,7 @@ class obc_vectvariable():
 
 	def perform_extrapolation(self,datasrc,maskfile,maskvar,missing_value,drown):
 		# 2.1 read mask or compute it
-		if maskfile is not None:
+		if maskvar is not None:
 			mask = _ncdf.read_field(maskfile,maskvar)
 			# to do, needs imin/imax_src,...
 		else:
@@ -293,7 +301,7 @@ class obc_vectvariable():
 					tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 					self.nscan, self.epsx, self.relc)
 				elif drown == 'sosie':
-					tmpout = _mod_drown_sosie.mod_drown.drown(0,tmpin,mask[kz,:,:].T,\
+					tmpout = _mod_drown_sosie.mod_drown.drown(self.kew,tmpin,mask[kz,:,:].T,\
 					nb_inc=200,nb_smooth=40)
 				data[kz,:,:] = tmpout.transpose()
 				if self.debug and kz == 0:
@@ -306,7 +314,7 @@ class obc_vectvariable():
 				tmpout = _fill.mod_poisson.poisxy1(tmpin,self.xmsg, self.guess, self.gtype, \
 				self.nscan, self.epsx, self.relc)
 			elif drown == 'sosie':
-				tmpout = _mod_drown_sosie.mod_drown.drown(0,tmpin,mask[:,:].T,\
+				tmpout = _mod_drown_sosie.mod_drown.drown(self.kew,tmpin,mask[:,:].T,\
 				nb_inc=200,nb_smooth=40)
 			data[:,:] = tmpout.transpose()
 		return data
