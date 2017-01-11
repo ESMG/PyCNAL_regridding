@@ -2,8 +2,8 @@ import numpy as _np
 import ESMF as _ESMF
 from brushcutter import lib_ioncdf as _ncdf
 from brushcutter import lib_common as _lc
-import fill_msg_grid as _fill
-import mod_drown_sosie as _mod_drown_sosie
+from brushcutter import fill_msg_grid as _fill
+from brushcutter import mod_drown_sosie as _mod_drown_sosie
 import matplotlib.pylab as _plt
 
 import time as ptime
@@ -365,7 +365,6 @@ class obc_variable():
 			_lc.find_subset(self.grid_target,lon_src,lat_src)
 			lon_src = lon_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
 			lat_src = lat_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
-			print 'subset shape is ', lon_src.shape
 
 		ny_src, nx_src = lon_src.shape
 		if not autocrop:
