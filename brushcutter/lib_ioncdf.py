@@ -7,7 +7,7 @@ def write_obc_file(list_segments,list_variables,list_vectvariables,time_point,ou
 	of segments and associated variables '''
 
 	# open file in write mode
-	fid = nc.Dataset(output, 'w', format='NETCDF3_CLASSIC')
+	fid = nc.Dataset(output, 'w', format='NETCDF3_64BIT_OFFSET')
 	fid.description = ''
 
 	# define the list of dimensions we need to write
