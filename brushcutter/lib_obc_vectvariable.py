@@ -155,22 +155,26 @@ class obc_vectvariable():
 		'''
 		# 1. Create ESMF source grids
 		if maskfile is not None:
-			self.gridsrc_u = self.create_source_grid(maskfile,from_global,coord_names_u,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
-			self.gridsrc_v = self.create_source_grid(maskfile,from_global,coord_names_v,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			self.gridsrc_u, imin_src_u, imax_src_u, jmin_src_u, jmax_src_u = self.create_source_grid(maskfile,\
+			from_global,coord_names_u,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			self.gridsrc_v, imin_src_v, imax_src_v, jmin_src_v, jmax_src_v = self.create_source_grid(maskfile,\
+			from_global,coord_names_v,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
 		else:
-			self.gridsrc_u = self.create_source_grid(filename,from_global,coord_names_u,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
-			self.gridsrc_v = self.create_source_grid(filename,from_global,coord_names_v,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			self.gridsrc_u, imin_src_u, imax_src_u, jmin_src_u, jmax_src_u = self.create_source_grid(filename,\
+			from_global,coord_names_u,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			self.gridsrc_v, imin_src_v, imax_src_v, jmin_src_v, jmax_src_v = self.create_source_grid(filename,\
+			from_global,coord_names_v,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
 
 		# 2. read the original field
 		datasrc_u = _ncdf.read_field(filename,variable_u,frame=frame)
 		datasrc_v = _ncdf.read_field(filename,variable_v,frame=frame)
 		if self.geometry == 'surface':
-			datasrc_u = datasrc_u[:,self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
-			datasrc_v = datasrc_v[:,self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			datasrc_u = datasrc_u[:,jmin_src_u:jmax_src_u,imin_src_u:imax_src_u]
+			datasrc_v = datasrc_v[:,jmin_src_v:jmax_src_v,imin_src_v:imax_src_v]
 			self.depth, self.nz, self.dz = _ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
 		else:
-			datasrc_u = datasrc_u[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
-			datasrc_v = datasrc_v[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			datasrc_u = datasrc_u[jmin_src_u:jmax_src_u,imin_src_u:imax_src_u]
+			datasrc_v = datasrc_v[jmin_src_v:jmax_src_v,imin_src_v:imax_src_v]
 			self.depth=0.; self.nz=1; self.dz=0.
 		# read time 
 		try:
@@ -412,15 +416,15 @@ class obc_vectvariable():
 
 		# autocrop
 		if autocrop:
-			self.imin_src, self.imax_src, self.jmin_src, self.jmax_src = \
+			imin_src, imax_src, jmin_src, jmax_src = \
 			_lc.find_subset(self.grid_target,lon_src,lat_src)
-			lon_src = lon_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
-			lat_src = lat_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+			lon_src = lon_src[jmin_src:jmax_src,imin_src:imax_src]
+			lat_src = lat_src[jmin_src:jmax_src,imin_src:imax_src]
 
 		ny_src, nx_src = lon_src.shape
 		if not autocrop:
-			self.imin_src = 0 ; self.imax_src = nx_src 
-			self.jmin_src = 0 ; self.jmax_src = ny_src 
+			imin_src = 0 ; imax_src = nx_src 
+			jmin_src = 0 ; jmax_src = ny_src 
 
 		if from_global and not autocrop:
 			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
@@ -437,5 +441,5 @@ class obc_vectvariable():
 		# original from RD
 		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
 		#is_sphere=from_global,coord_names=coord_names)
-		return gridsrc
+		return gridsrc, imin_src, imax_src, jmin_src, jmax_src
 
