@@ -133,7 +133,7 @@ class obc_vectvariable():
 
 	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown='sosie',maskfile=None,maskvar=None, \
 	                     missing_value=None,from_global=True,depthname='z', \
-	                     timename='time',coord_names_u=['lon','lat'],coord_names_v=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',\
+	                     timename='time',coord_names_u=['lon','lat'],coord_names_v=['lon','lat'],x_coords_u=None,y_coords_u=None,x_coords_v=None,y_coords_v=None,method='bilinear',\
 			     interpolator_u=None,interpolator_v=None,autocrop=True):
 		''' interpolate_from performs a serie of operation :
 		* read input data
@@ -156,14 +156,14 @@ class obc_vectvariable():
 		# 1. Create ESMF source grids
 		if maskfile is not None:
 			self.gridsrc_u, imin_src_u, imax_src_u, jmin_src_u, jmax_src_u = self.create_source_grid(maskfile,\
-			from_global,coord_names_u,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			from_global,coord_names_u,x_coords=x_coords_u,y_coords=y_coords_u,autocrop=autocrop)
 			self.gridsrc_v, imin_src_v, imax_src_v, jmin_src_v, jmax_src_v = self.create_source_grid(maskfile,\
-			from_global,coord_names_v,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			from_global,coord_names_v,x_coords=x_coords_v,y_coords=y_coords_v,autocrop=autocrop)
 		else:
 			self.gridsrc_u, imin_src_u, imax_src_u, jmin_src_u, jmax_src_u = self.create_source_grid(filename,\
-			from_global,coord_names_u,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			from_global,coord_names_u,x_coords=x_coords_u,y_coords=y_coords_u,autocrop=autocrop)
 			self.gridsrc_v, imin_src_v, imax_src_v, jmin_src_v, jmax_src_v = self.create_source_grid(filename,\
-			from_global,coord_names_v,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			from_global,coord_names_v,x_coords=x_coords_v,y_coords=y_coords_v,autocrop=autocrop)
 
 		# 2. read the original field
 		datasrc_u = _ncdf.read_field(filename,variable_u,frame=frame)
@@ -183,6 +183,13 @@ class obc_vectvariable():
 			print('input data time variable not read')
 			
 		# TODO !! make rotation to east,north from source grid.
+		# important : if the grid is regular, we don't need to colocate u,v and
+		# the interpolation will be more accurate.
+		# Run colocation only if grid is non-regular.
+#		angle_src_u = _lc.compute_angle_from_lon_lat(self.gridsrc_u.coords[0][0].T,\
+#		                                             self.gridsrc_u.coords[0][1].T)
+#		angle_src_v = _lc.compute_angle_from_lon_lat(self.gridsrc_v.coords[0][0].T,\
+#		                                             self.gridsrc_v.coords[0][1].T)
 
 		# 3. perform extrapolation over land
 		print('drown')
