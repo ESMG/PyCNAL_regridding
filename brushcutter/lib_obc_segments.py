@@ -105,7 +105,15 @@ class obc_segment():
 			# import target grid into ESMF grid object
 			self.grid_target = _ESMF.Grid(filename=target_grid_file,filetype=_ESMF.FileFormat.GRIDSPEC,
 		                             coord_names=coord_names)
-					      
+
+		elif target_model == 'regular':
+			coord_names=["lon", "lat"]
+			self.angle_dx = 0. # for now
+
+			# import target grid into ESMF grid object
+			self.grid_target = _ESMF.Grid(filename=target_grid_file,filetype=_ESMF.FileFormat.GRIDSPEC,
+		                             coord_names=coord_names,add_corner_stagger=True)
+
 		# import same target grid into ESMF locstream object
 		self.locstream_target = _ESMF.LocStream(self.nx * self.ny, coord_sys=_ESMF.CoordSys.SPH_DEG)
 		self.locstream_target["ESMF:Lon"] = self.grid_target.coords[0][0][self.imin:self.imax+1, \

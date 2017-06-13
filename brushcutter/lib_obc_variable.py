@@ -8,6 +8,8 @@ import matplotlib.pylab as _plt
 
 import time as ptime
 
+#_ESMF.Manager(debug=True)
+
 class obc_variable():
 	''' A class describing an open boundary condition variable
 	on an obc_segment '''
@@ -127,7 +129,7 @@ class obc_variable():
 	def interpolate_from(self,filename,variable,frame=None,drown='sosie',maskfile=None,maskvar=None, \
 	                     missing_value=None,from_global=True,depthname='z', \
 	                     timename='time',coord_names=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',\
-			     interpolator=None,autocrop=True):
+			     interpolator=None,autocrop=True,use_gridspec=False):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -148,9 +150,9 @@ class obc_variable():
 		'''
 		# 1. Create ESMF source grid
 		if maskfile is not None:
-			self.gridsrc = self.create_source_grid(maskfile,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			self.gridsrc = self.create_source_grid(maskfile,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop,use_gridspec=use_gridspec)
 		else:
-			self.gridsrc = self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop)
+			self.gridsrc = self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop,use_gridspec=use_gridspec)
 
 		# 2. read the original field
 		datasrc = _ncdf.read_field(filename,variable,frame=frame)
@@ -190,6 +192,10 @@ class obc_variable():
 				regridme = _ESMF.Regrid(field_src, self.field_target,
 				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.PATCH)
+			elif method == 'conserve':
+				regridme = _ESMF.Regrid(field_src, self.field_target,
+				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
+				                        regrid_method=_ESMF.RegridMethod.CONSERVE)
 		else:
 			regridme = interpolator
 
@@ -346,50 +352,60 @@ class obc_variable():
 		dst_obc_variable.timesrc = self.timesrc
 		return None
 
-	def create_source_grid(self,filename,from_global,coord_names,x_coords=None,y_coords=None,autocrop=True):
+	def create_source_grid(self,filename,from_global,coord_names,x_coords=None,y_coords=None,autocrop=True,use_gridspec=False):
 		''' create ESMF grid object for source grid '''
 		# new way to create source grid
 		# TO DO : move into separate function, has to be called before drown
 		# so that we know the periodicity
 
-		# Allow to provide lon/lat from existing array
-		if x_coords is not None and y_coords is not None:
-			lon_src = x_coords
-			lat_src = y_coords
-		else:
-			lons = _ncdf.read_field(filename,coord_names[0])
-			lats = _ncdf.read_field(filename,coord_names[1])
-			if len(lons.shape) == 1:
-				lon_src,lat_src = _np.meshgrid(lons,lats)
+		if use_gridspec:
+			gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
+			is_sphere=from_global,coord_names=coord_names,add_corner_stagger=True)
+			self.imin_src = 0 ; self.imax_src = gridsrc.coords[0][0].shape[0]
+			self.jmin_src = 0 ; self.jmax_src = gridsrc.coords[0][0].shape[1]
+			if from_global and not autocrop:
+				self.gtype = 1 # 1 = periodic for drown NCL
+				self.kew   = 0 # 0 = periodic for drown sosie
 			else:
-				lon_src = lons ; lat_src = lats
-
-		# autocrop
-		if autocrop:
-			self.imin_src, self.imax_src, self.jmin_src, self.jmax_src = \
-			_lc.find_subset(self.grid_target,lon_src,lat_src)
-			lon_src = lon_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
-			lat_src = lat_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
-
-		ny_src, nx_src = lon_src.shape
-		if not autocrop:
-			self.imin_src = 0 ; self.imax_src = nx_src 
-			self.jmin_src = 0 ; self.jmax_src = ny_src 
-
-		if from_global and not autocrop:
-			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
-			self.gtype = 1 # 1 = periodic for drown NCL
-			self.kew   = 0 # 0 = periodic for drown sosie
+				self.gtype =  0 #  1 = non periodic for drown NCL
+				self.kew   = -1 # -1 = non periodic for drown sosie
 		else:
-			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
-			self.gtype =  0 #  1 = non periodic for drown NCL
-			self.kew   = -1 # -1 = non periodic for drown sosie
-		gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
-		gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
-		gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
+			# Allow to provide lon/lat from existing array
+			if x_coords is not None and y_coords is not None:
+				lon_src = x_coords
+				lat_src = y_coords
+			else:
+				lons = _ncdf.read_field(filename,coord_names[0])
+				lats = _ncdf.read_field(filename,coord_names[1])
+				if len(lons.shape) == 1:
+					lon_src,lat_src = _np.meshgrid(lons,lats)
+				else:
+					lon_src = lons ; lat_src = lats
 
-		# original from RD
-		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
-		#is_sphere=from_global,coord_names=coord_names)
+			# autocrop
+			if autocrop:
+				self.imin_src, self.imax_src, self.jmin_src, self.jmax_src = \
+				_lc.find_subset(self.grid_target,lon_src,lat_src)
+				lon_src = lon_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+				lat_src = lat_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+
+			ny_src, nx_src = lon_src.shape
+			if not autocrop:
+				self.imin_src = 0 ; self.imax_src = nx_src 
+				self.jmin_src = 0 ; self.jmax_src = ny_src 
+
+			if from_global and not autocrop:
+				gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
+				self.gtype = 1 # 1 = periodic for drown NCL
+				self.kew   = 0 # 0 = periodic for drown sosie
+			else:
+				gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+				self.gtype =  0 #  1 = non periodic for drown NCL
+				self.kew   = -1 # -1 = non periodic for drown sosie
+
+			gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+			gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
+			gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
+
 		return gridsrc
 
