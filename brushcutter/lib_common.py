@@ -62,3 +62,29 @@ def find_subset(target_grid,lon_src,lat_src):
 
 	return imin, imax, jmin, jmax
 
+def supergrid_to_staggered(field,pointtype):
+	''' extract field from supergrid on its staggered location, given by pointtype T,U,V '''
+	# this is what I assumed for lower left grid cell
+	#
+	#     |   V(0,0)
+	#     |
+	#     |   T(0,0)   U(0,0)
+	#     |
+	#     |------------------
+	#
+	if pointtype == 'T':
+		if len(field.shape) == 2:
+			fieldout = field[:-1:2,:-1:2]
+		elif len(field.shape) == 3:
+			fieldout = field[:,:-1:2,:-1:2]
+	elif pointtype == 'U':
+		if len(field.shape) == 2:
+			fieldout = field[:-1:2,1::2]
+		elif len(field.shape) == 3:
+			fieldout = field[:,:-1:2,1::2]
+	elif pointtype == 'V':
+		if len(field.shape) == 2:
+			fieldout = field[1::2,:-1:2]
+		elif len(field.shape) == 3:
+			fieldout = field[:,1::2,:-1:2]
+	return fieldout
