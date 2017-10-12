@@ -256,11 +256,11 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
 
 	for var in list_variables:
 		if var.geometry == 'surface':
-			nczt[:] = var.depth
+			nczt[:] = var.depth[:,0,0]
 			nczw[0] = 0
-			nczw[1:] = var.dz.cumsum()
+			nczw[1:] = var.dz[:,1,1].cumsum()
 			ncinterfaces[0] = 0
-			ncinterfaces[1:] = var.dz.cumsum()
+			ncinterfaces[1:] = var.dz[:,0,0].cumsum()
 
 	# fill variables
 	for nvar in np.arange(len(list_variables)):
