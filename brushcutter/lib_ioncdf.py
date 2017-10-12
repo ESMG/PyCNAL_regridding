@@ -256,7 +256,7 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
 
 	for var in list_variables:
 		if var.geometry == 'surface':
-			nczt[:] = var.vc
+			nczt[:] = var.depth
 			nczw[0] = 0
 			nczw[1:] = var.dz.cumsum()
 			ncinterfaces[0] = 0
