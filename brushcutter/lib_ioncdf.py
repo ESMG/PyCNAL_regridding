@@ -254,6 +254,14 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
 	#ncyh = lc.supergrid_to_staggered(domain.lat,'T')
 	#ncyh = lc.supergrid_to_staggered(domain.lat,'T')
 
+	for var in list_variables:
+		if var.geometry == 'surface':
+			nczt[:] = var.vc
+			nczw[0] = 0
+			nczw[1:] = var.dz.cumsum()
+			ncinterfaces[0] = 0
+			ncinterfaces[1:] = var.dz.cumsum()
+
 	# fill variables
 	for nvar in np.arange(len(list_variables)):
 		ncvariables[nvar][0,:] = lc.supergrid_to_staggered(list_variables[nvar].data,'T')
