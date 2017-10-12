@@ -256,7 +256,7 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
 	# tracer has attribute coordinates = "lon lat"
 	#ncyh = lc.supergrid_to_staggered(domain.lat,'T')
 	#ncyh = lc.supergrid_to_staggered(domain.lat,'T')
-	nctime[:] = timepoint.data
+	nctime[:] = time_point.data
 
 	for var in list_variables:
 		if var.geometry == 'surface':
