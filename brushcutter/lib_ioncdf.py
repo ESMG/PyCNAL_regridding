@@ -194,8 +194,8 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
         fid.createDimension('zw'        , nz+1)
         fid.createDimension('yh'        , ny)
         fid.createDimension('xh'        , nx)
-        fid.createDimension('xq'        , nx)
-        fid.createDimension('yq'        , ny)
+        fid.createDimension('xq'        , nx+1)
+        fid.createDimension('yq'        , ny+1)
         fid.createDimension('interfaces', nz+1)
 	
 	# define variables
@@ -248,7 +248,9 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
 	ncyq.cartesian_axis = "Y" 
 	ncinterfaces.cartesian_axis = "Z" 
 
-	# fill coords
+	# fill coords : make xq,... unit vector 1 to N
+	# create lon/lat for actual values
+	# tracer has attribute coordinates = "lon lat"
 	#ncyh = lc.supergrid_to_staggered(domain.lat,'T')
 	#ncyh = lc.supergrid_to_staggered(domain.lat,'T')
 

@@ -74,17 +74,17 @@ def supergrid_to_staggered(field,pointtype):
 	#
 	if pointtype == 'T':
 		if len(field.shape) == 2:
-			fieldout = field[:-1:2,:-1:2]
+			fieldout = field[1::2,1::2]
 		elif len(field.shape) == 3:
-			fieldout = field[:,:-1:2,:-1:2]
+			fieldout = field[:,1::2,1::2]
 	elif pointtype == 'U':
 		if len(field.shape) == 2:
-			fieldout = field[:-1:2,1::2]
+			fieldout = field[1::2,0::2]
 		elif len(field.shape) == 3:
-			fieldout = field[:,:-1:2,1::2]
+			fieldout = field[:,1::2,0::2]
 	elif pointtype == 'V':
 		if len(field.shape) == 2:
-			fieldout = field[1::2,:-1:2]
+			fieldout = field[::2,1::2]
 		elif len(field.shape) == 3:
-			fieldout = field[:,1::2,:-1:2]
+			fieldout = field[:,::2,1::2]
 	return fieldout
