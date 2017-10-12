@@ -199,6 +199,7 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
         fid.createDimension('interfaces', nz+1)
 	
 	# define variables
+	nctime = fid.createVariable('time','f8',('time',))
 	nczt = fid.createVariable('zt','f8',('zt',))
 	nczw = fid.createVariable('zw','f8',('zw',))
 	ncyh = fid.createVariable('yh','f8',('yh',))
@@ -248,11 +249,14 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
 	ncyq.cartesian_axis = "Y" 
 	ncinterfaces.cartesian_axis = "Z" 
 
+	nctime.units = time_point.units
+	nctime.calendar = time_point.calendar
 	# fill coords : make xq,... unit vector 1 to N
 	# create lon/lat for actual values
 	# tracer has attribute coordinates = "lon lat"
 	#ncyh = lc.supergrid_to_staggered(domain.lat,'T')
 	#ncyh = lc.supergrid_to_staggered(domain.lat,'T')
+	nctime[:] = timepoint.data
 
 	for var in list_variables:
 		if var.geometry == 'surface':
