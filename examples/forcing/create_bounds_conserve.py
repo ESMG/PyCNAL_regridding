@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import netCDF4 as nc
 import sys
 import numpy as np
@@ -6,7 +7,7 @@ filein = sys.argv[1]
 fileout = filein.replace('.nc','_conserve.nc')
 
 # read from original mask
-fidin = nc.Dataset(lsmin, 'r')
+fidin = nc.Dataset(filein, 'r')
 lon = fidin.variables['lon'][:]
 lat = fidin.variables['lat'][:]
 fidin.close()
