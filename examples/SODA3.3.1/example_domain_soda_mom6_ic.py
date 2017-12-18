@@ -1,6 +1,6 @@
 from PyCNAL_regridding import *
 
-sodafile = '/Volumes/P1/Data/SODA/SODA_3.3.1/1980/soda3.3.1_5dy_ocean_reg_1980_02_02.nc'
+sodafile = '../data/soda3.3.1_5dy_ocean_reg_1980_09_29.nc'
 momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------
@@ -31,5 +31,4 @@ list_vectvariables = [vel_domain]
 time = temp_domain.timesrc
 
 # ---------- write to file -----------------------------------
-#lib_ioncdf.write_obc_file(list_segments,list_variables,list_vectvariables,time,output='soda3.3.1_5dy_ocean_reg_1980_09_29_domain_CCS.nc')
-lib_ioncdf.write_ic_file(list_segments,list_variables,list_vectvariables,time,output='test.nc')
+lib_ioncdf.write_ic_file(list_segments,list_variables,list_vectvariables,time,output='CCS_ICi_from_soda3.3.1_1980_09_29.nc')

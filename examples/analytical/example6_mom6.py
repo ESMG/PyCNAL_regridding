@@ -4,7 +4,6 @@ from PyCNAL_regridding import lib_ioncdf as ncdf
 from PyCNAL_regridding import lib_timemanager as ltim
 import numpy as np
 import sys
-import ConfigParser
 
 # this example demonstrate how to make analytical obc
 
