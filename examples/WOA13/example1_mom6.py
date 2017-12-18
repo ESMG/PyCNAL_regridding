@@ -1,6 +1,6 @@
-from brushcutter import lib_obc_segments as los
-from brushcutter import lib_obc_variable as lov
-from brushcutter import lib_ioncdf as ncdf
+from PyCNAL_regridding import lib_obc_segments as los
+from PyCNAL_regridding import lib_obc_variable as lov
+from PyCNAL_regridding import lib_ioncdf as ncdf
 
 # make sure ocean_hgrid has GRIDSPEC compliant units, here :
 #cp ocean_hgrid.nc ocean_hgrid_v2.nc

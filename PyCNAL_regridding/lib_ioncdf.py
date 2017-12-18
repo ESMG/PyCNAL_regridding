@@ -1,7 +1,7 @@
 import netCDF4 as nc
 import numpy as np
-from brushcutter import lib_timemanager as tim
-from brushcutter import lib_common as lc
+from PyCNAL_regridding import lib_timemanager as tim
+from PyCNAL_regridding import lib_common as lc
 
 #---------------------------------------------------------------------------------------------------
 #--- writing functions

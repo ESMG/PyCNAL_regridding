@@ -1,2 +1,0 @@
-# on laptop : sudo python setup.py install
-# on mac server (non-root) : python setup.py install --user

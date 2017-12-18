@@ -1,18 +1,20 @@
 import numpy as _np
 import ESMF as _ESMF
-from brushcutter import lib_ioncdf as _ncdf
-from brushcutter import lib_common as _lc
-from brushcutter import fill_msg_grid as _fill
-from brushcutter import mod_drown_sosie as _mod_drown_sosie
+from PyCNAL_regridding import lib_ioncdf as _ncdf
+from PyCNAL_regridding import lib_common as _lc
+from PyCNAL_regridding import fill_msg_grid as _fill
+from PyCNAL_regridding import mod_drown_sosie as _mod_drown_sosie
 import matplotlib.pylab as _plt
 
 import time as ptime
 
-class obc_vectvariable():
-	''' A class describing an open boundary condition vector variable
+#_ESMF.Manager(debug=True)
+
+class obc_variable():
+	''' A class describing an open boundary condition variable
 	on an obc_segment '''
 
-	def __init__(self,segment,variable_name_u,variable_name_v,use_locstream=False,**kwargs):
+	def __init__(self,segment,variable_name,use_locstream=False,**kwargs):
 		''' constructor of obc_variable : import from segment and adds attributes
 		specific to this variable
 
@@ -20,9 +22,7 @@ class obc_vectvariable():
 
 		* segment : existing obc_segment object
 
-		* variable_name_u : name of the zonal component in output file
-
-		* variable_name_v : name of the meridional component in output file
+		* variable_name : name of the variable in output file
 		
 		*** kwargs (mandatory) :
 
@@ -32,10 +32,9 @@ class obc_vectvariable():
 
 		'''
 
-		self.vector = True
+		self.vector = False
 		# read args 
-		self.variable_name_u = variable_name_u
-		self.variable_name_v = variable_name_v
+		self.variable_name = variable_name
 		self.items = []
 		self.items.append('variable_name')
 		# iterate over all attributes of segment and copy them 
@@ -48,15 +47,13 @@ class obc_vectvariable():
 
 		# boundary geometry
 		if self.geometry == 'line':
-			self.dimensions_name_u = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
-			self.dimensions_name_v = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
+			self.dimensions_name = ('time','ny_' + self.segment_name,'nx_' + self.segment_name,)
 		elif self.geometry == 'surface':
-			self.dimensions_name_u = ('time','nz_' + self.segment_name + '_' + self.variable_name_u, \
-			'ny_' + self.segment_name,'nx_' + self.segment_name,)
-			self.dimensions_name_v = ('time','nz_' + self.segment_name + '_' + self.variable_name_v, \
+			self.dimensions_name = ('time','nz_' + self.segment_name + '_' + self.variable_name, \
 			'ny_' + self.segment_name,'nx_' + self.segment_name,)
 
 
+		# RD : move this
 		# default parameters for land extrapolation
 		# can be modified by changing the attribute of object
 		self.drown_methods = ['sosie','ncl']
@@ -83,14 +80,12 @@ class obc_vectvariable():
 			data = _np.empty((self.ny,self.nx))
 		return data
 
-	def set_constant_value(self,value_u,value_v,depth_vector=None):
+	def set_constant_value(self,value,depth_vector=None):
 		''' Set constant value to field '''
 		if depth_vector is not None:
 			self.depth_dz_from_vector(depth_vector)
-		self.data_u_out = self.allocate()
-		self.data_v_out = self.allocate()
-		self.data_u_out[:] = value_u
-		self.data_v_out[:] = value_v
+		self.data = self.allocate()
+		self.data[:] = value
 		return None
 
 	def set_vertical_profile(self,top_value,bottom_value,shape='linear',depth_vector=None):
@@ -131,10 +126,10 @@ class obc_vectvariable():
 
 		return None
 
-	def interpolate_from(self,filename,variable_u,variable_v,frame=None,drown='sosie',maskfile=None,maskvar=None, \
+	def interpolate_from(self,filename,variable,frame=None,drown='sosie',maskfile=None,maskvar=None, \
 	                     missing_value=None,from_global=True,depthname='z', \
-	                     timename='time',coord_names_u=['lon','lat'],coord_names_v=['lon','lat'],x_coords_u=None,y_coords_u=None,x_coords_v=None,y_coords_v=None,method='bilinear',\
-			     interpolator_u=None,interpolator_v=None,autocrop=True):
+	                     timename='time',coord_names=['lon','lat'],x_coords=None,y_coords=None,method='bilinear',\
+			     interpolator=None,autocrop=True,use_gridspec=False):
 		''' interpolate_from performs a serie of operation :
 		* read input data
 		* perform extrapolation over land if desired
@@ -153,105 +148,63 @@ class obc_vectvariable():
 		* from_global=True : if input file is global leave to true. If input is regional, set to False.
 		                     interpolating from a regional extraction can significantly speed up processing.
 		'''
-		# 1. Create ESMF source grids
+		# 1. Create ESMF source grid
 		if maskfile is not None:
-			self.gridsrc_u, imin_src_u, imax_src_u, jmin_src_u, jmax_src_u = self.create_source_grid(maskfile,\
-			from_global,coord_names_u,x_coords=x_coords_u,y_coords=y_coords_u,autocrop=autocrop)
-			self.gridsrc_v, imin_src_v, imax_src_v, jmin_src_v, jmax_src_v = self.create_source_grid(maskfile,\
-			from_global,coord_names_v,x_coords=x_coords_v,y_coords=y_coords_v,autocrop=autocrop)
+			self.gridsrc = self.create_source_grid(maskfile,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop,use_gridspec=use_gridspec)
 		else:
-			self.gridsrc_u, imin_src_u, imax_src_u, jmin_src_u, jmax_src_u = self.create_source_grid(filename,\
-			from_global,coord_names_u,x_coords=x_coords_u,y_coords=y_coords_u,autocrop=autocrop)
-			self.gridsrc_v, imin_src_v, imax_src_v, jmin_src_v, jmax_src_v = self.create_source_grid(filename,\
-			from_global,coord_names_v,x_coords=x_coords_v,y_coords=y_coords_v,autocrop=autocrop)
+			self.gridsrc = self.create_source_grid(filename,from_global,coord_names,x_coords=x_coords,y_coords=y_coords,autocrop=autocrop,use_gridspec=use_gridspec)
 
 		# 2. read the original field
-		datasrc_u = _ncdf.read_field(filename,variable_u,frame=frame)
-		datasrc_v = _ncdf.read_field(filename,variable_v,frame=frame)
+		datasrc = _ncdf.read_field(filename,variable,frame=frame)
 		if self.geometry == 'surface':
-			datasrc_u = datasrc_u[:,jmin_src_u:jmax_src_u,imin_src_u:imax_src_u]
-			datasrc_v = datasrc_v[:,jmin_src_v:jmax_src_v,imin_src_v:imax_src_v]
+			datasrc = datasrc[:,self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
 			self.depth, self.nz, self.dz = _ncdf.read_vert_coord(filename,depthname,self.nx,self.ny)
 		else:
-			datasrc_u = datasrc_u[jmin_src_u:jmax_src_u,imin_src_u:imax_src_u]
-			datasrc_v = datasrc_v[jmin_src_v:jmax_src_v,imin_src_v:imax_src_v]
+			datasrc = datasrc[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
 			self.depth=0.; self.nz=1; self.dz=0.
 		# read time 
 		try:
 			self.timesrc = _ncdf.read_time(filename,timename,frame=frame)
 		except:
 			print('input data time variable not read')
-			
-		# TODO !! make rotation to east,north from source grid.
-		# important : if the grid is regular, we don't need to colocate u,v and
-		# the interpolation will be more accurate.
-		# Run colocation only if grid is non-regular.
-#		angle_src_u = _lc.compute_angle_from_lon_lat(self.gridsrc_u.coords[0][0].T,\
-#		                                             self.gridsrc_u.coords[0][1].T)
-#		angle_src_v = _lc.compute_angle_from_lon_lat(self.gridsrc_v.coords[0][0].T,\
-#		                                             self.gridsrc_v.coords[0][1].T)
 
 		# 3. perform extrapolation over land
 		print('drown')
 		start = ptime.time()
 		if drown in self.drown_methods:
-			dataextrap_u = self.perform_extrapolation(datasrc_u,maskfile,maskvar,missing_value,drown)
-			dataextrap_v = self.perform_extrapolation(datasrc_v,maskfile,maskvar,missing_value,drown)
+			dataextrap = self.perform_extrapolation(datasrc,maskfile,maskvar,missing_value,drown)
 		else:
-			dataextrap_u = datasrc_u.copy()
-			dataextrap_v = datasrc_v.copy()
+			dataextrap = datasrc.copy()
 		end = ptime.time()
 		print('end drown', end-start)
 
 		# 4. ESMF interpolation
 		# Create a field on the centers of the grid
-		field_src_u = _ESMF.Field(self.gridsrc_u, staggerloc=_ESMF.StaggerLoc.CENTER)
-		field_src_v = _ESMF.Field(self.gridsrc_v, staggerloc=_ESMF.StaggerLoc.CENTER)
+		field_src = _ESMF.Field(self.gridsrc, staggerloc=_ESMF.StaggerLoc.CENTER)
 
 		# Set up a regridding object between source and destination
-		print('create regridding for u')
-		if interpolator_u is None:
+		if interpolator is None:
 			if method == 'bilinear':
-				regridme_u = _ESMF.Regrid(field_src_u, self.field_target,
+				regridme = _ESMF.Regrid(field_src, self.field_target,
 				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.BILINEAR)
 			elif method == 'patch':
-				regridme_u = _ESMF.Regrid(field_src_u, self.field_target,
+				regridme = _ESMF.Regrid(field_src, self.field_target,
 				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
 				                        regrid_method=_ESMF.RegridMethod.PATCH)
-		else:
-			regridme_u = interpolator_u
-
-		print('create regridding for v')
-		if interpolator_v is None:
-			if method == 'bilinear':
-				regridme_v = _ESMF.Regrid(field_src_v, self.field_target,
+			elif method == 'conserve':
+				regridme = _ESMF.Regrid(field_src, self.field_target,
 				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
-				                        regrid_method=_ESMF.RegridMethod.BILINEAR)
-			elif method == 'patch':
-				regridme_v = _ESMF.Regrid(field_src_v, self.field_target,
-				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
-				                        regrid_method=_ESMF.RegridMethod.PATCH)
+				                        regrid_method=_ESMF.RegridMethod.CONSERVE)
 		else:
-			regridme_v = interpolator_v
+			regridme = interpolator
 
-		print('regridding u')
-		self.data_u = self.perform_interpolation(dataextrap_u,regridme_u,field_src_u,self.field_target,self.use_locstream)
-		print('regridding v')
-		self.data_v = self.perform_interpolation(dataextrap_v,regridme_v,field_src_v,self.field_target,self.use_locstream)
-
-		# vector rotation to output grid
-		self.data_u_out = self.data_u * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) + \
-		                  self.data_v * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1])
-		self.data_v_out = self.data_v * _np.cos(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) - \
-		                  self.data_u * _np.sin(self.angle_dx[self.jmin:self.jmax+1,self.imin:self.imax+1]) 
+		self.data = self.perform_interpolation(dataextrap,regridme,field_src,self.field_target,self.use_locstream)
 
 		# free memory (ESMPy has memory leak)
-		self.gridsrc_u.destroy()
-		self.gridsrc_v.destroy()
-		field_src_u.destroy()
-		field_src_v.destroy()
-		return regridme_u, regridme_v
+		self.gridsrc.destroy()
+		field_src.destroy()
+		return regridme
 
 	def compute_mask_from_missing_value(self,data,missing_value=None):
 		''' compute mask from missing value :
@@ -385,68 +338,74 @@ class obc_vectvariable():
 	def extract_subset_into(self,dst_obc_variable):
 		''' extract subset of data from source obc variable into dest'''
 		if self.geometry == 'surface':
-			dst_obc_variable.data_u_out  = self.data_u_out[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
-			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
-			dst_obc_variable.data_v_out  = self.data_v_out[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
-			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
-			dst_obc_variable.depth       = self.depth[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
-			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
-			dst_obc_variable.dz          = self.dz[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
-			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
-			dst_obc_variable.nz          = self.nz
+			dst_obc_variable.data  = self.data[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                         dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.depth = self.depth[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                         dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.dz    = self.dz[:,dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                         dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.nz    = self.nz
 		elif self.geometry == 'line':
-			dst_obc_variable.data_u_out  = self.data_u_out[dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
-			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
-			dst_obc_variable.data_v_out  = self.data_v_out[dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
-			                               dst_obc_variable.imin:dst_obc_variable.imax+1]
+			dst_obc_variable.data  = self.data[dst_obc_variable.jmin:dst_obc_variable.jmax+1, \
+			                         dst_obc_variable.imin:dst_obc_variable.imax+1]
 
 		dst_obc_variable.timesrc = self.timesrc
 		return None
 
-	def create_source_grid(self,filename,from_global,coord_names,x_coords=None,y_coords=None,autocrop=True):
+	def create_source_grid(self,filename,from_global,coord_names,x_coords=None,y_coords=None,autocrop=True,use_gridspec=False):
 		''' create ESMF grid object for source grid '''
 		# new way to create source grid
 		# TO DO : move into separate function, has to be called before drown
 		# so that we know the periodicity
 
-		# Allow to provide lon/lat from existing array
-		if x_coords is not None and y_coords is not None:
-			lon_src = x_coords
-			lat_src = y_coords
-		else:
-			lons = _ncdf.read_field(filename,coord_names[0])
-			lats = _ncdf.read_field(filename,coord_names[1])
-			if len(lons.shape) == 1:
-				lon_src,lat_src = _np.meshgrid(lons,lats)
+		if use_gridspec:
+			gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
+			is_sphere=from_global,coord_names=coord_names,add_corner_stagger=True)
+			self.imin_src = 0 ; self.imax_src = gridsrc.coords[0][0].shape[0]
+			self.jmin_src = 0 ; self.jmax_src = gridsrc.coords[0][0].shape[1]
+			if from_global and not autocrop:
+				self.gtype = 1 # 1 = periodic for drown NCL
+				self.kew   = 0 # 0 = periodic for drown sosie
 			else:
-				lon_src = lons ; lat_src = lats
-
-		# autocrop
-		if autocrop:
-			imin_src, imax_src, jmin_src, jmax_src = \
-			_lc.find_subset(self.grid_target,lon_src,lat_src)
-			lon_src = lon_src[jmin_src:jmax_src,imin_src:imax_src]
-			lat_src = lat_src[jmin_src:jmax_src,imin_src:imax_src]
-
-		ny_src, nx_src = lon_src.shape
-		if not autocrop:
-			imin_src = 0 ; imax_src = nx_src 
-			jmin_src = 0 ; jmax_src = ny_src 
-
-		if from_global and not autocrop:
-			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
-			self.gtype = 1 # 1 = periodic for drown NCL
-			self.kew   = 0 # 0 = periodic for drown sosie
+				self.gtype =  0 #  1 = non periodic for drown NCL
+				self.kew   = -1 # -1 = non periodic for drown sosie
 		else:
-			gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
-			self.gtype =  0 #  1 = non periodic for drown NCL
-			self.kew   = -1 # -1 = non periodic for drown sosie
-		gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
-		gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
-		gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
+			# Allow to provide lon/lat from existing array
+			if x_coords is not None and y_coords is not None:
+				lon_src = x_coords
+				lat_src = y_coords
+			else:
+				lons = _ncdf.read_field(filename,coord_names[0])
+				lats = _ncdf.read_field(filename,coord_names[1])
+				if len(lons.shape) == 1:
+					lon_src,lat_src = _np.meshgrid(lons,lats)
+				else:
+					lon_src = lons ; lat_src = lats
 
-		# original from RD
-		#self.gridsrc = _ESMF.Grid(filename=filename,filetype=_ESMF.FileFormat.GRIDSPEC,\
-		#is_sphere=from_global,coord_names=coord_names)
-		return gridsrc, imin_src, imax_src, jmin_src, jmax_src
+			# autocrop
+			if autocrop:
+				self.imin_src, self.imax_src, self.jmin_src, self.jmax_src = \
+				_lc.find_subset(self.grid_target,lon_src,lat_src)
+				lon_src = lon_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+				lat_src = lat_src[self.jmin_src:self.jmax_src,self.imin_src:self.imax_src]
+
+			ny_src, nx_src = lon_src.shape
+			if not autocrop:
+				self.imin_src = 0 ; self.imax_src = nx_src 
+				self.jmin_src = 0 ; self.jmax_src = ny_src 
+
+			if from_global and not autocrop:
+				gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]),num_peri_dims=1)
+				self.gtype = 1 # 1 = periodic for drown NCL
+				self.kew   = 0 # 0 = periodic for drown sosie
+			else:
+				gridsrc = _ESMF.Grid(_np.array([nx_src,ny_src]))
+				self.gtype =  0 #  1 = non periodic for drown NCL
+				self.kew   = -1 # -1 = non periodic for drown sosie
+
+			gridsrc.add_coords(staggerloc=[_ESMF.StaggerLoc.CENTER])
+			gridsrc.coords[_ESMF.StaggerLoc.CENTER][0][:]=lon_src.T
+			gridsrc.coords[_ESMF.StaggerLoc.CENTER][1][:]=lat_src.T
+
+		return gridsrc
 

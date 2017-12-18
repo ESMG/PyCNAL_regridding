@@ -1,6 +1,6 @@
-from brushcutter import *
+from PyCNAL_regridding import *
 
-momfile = '/Volumes/P4/workdir/raphael/work_brushcutter/20140101.nc'
+momfile = '/Volumes/P4/workdir/raphael/work_PyCNAL_regridding/20140101.nc'
 momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------

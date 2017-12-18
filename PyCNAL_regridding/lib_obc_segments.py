@@ -1,6 +1,6 @@
 import numpy as _np
 import ESMF as _ESMF
-from brushcutter import lib_ioncdf as _ncdf
+from PyCNAL_regridding import lib_ioncdf as _ncdf
 
 class obc_segment():
 	''' A class describing an open boundary condtion segment '''

@@ -1,4 +1,4 @@
-from brushcutter import *
+from PyCNAL_regridding import *
 
 sodafile = '../data/soda3.3.1_5dy_ocean_reg_1980_09_29.nc'
 momgrd = '../data/ocean_hgrid_v2.nc'

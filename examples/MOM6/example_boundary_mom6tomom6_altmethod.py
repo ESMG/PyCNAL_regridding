@@ -1,9 +1,9 @@
-from brushcutter import lib_obc_segments as los
-from brushcutter import lib_obc_variable as lov
-from brushcutter import lib_obc_vectvariable as losv
-from brushcutter import lib_ioncdf as ncdf
+from PyCNAL_regridding import lib_obc_segments as los
+from PyCNAL_regridding import lib_obc_variable as lov
+from PyCNAL_regridding import lib_obc_vectvariable as losv
+from PyCNAL_regridding import lib_ioncdf as ncdf
 
-momfile = '/Volumes/P4/workdir/raphael/work_brushcutter/20140101.nc'
+momfile = '/Volumes/P4/workdir/raphael/work_PyCNAL_regridding/20140101.nc'
 momgrd = '../data/ocean_hgrid_v2.nc'
 
 # ---------- define segments on MOM grid -----------------------

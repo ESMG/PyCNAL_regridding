@@ -1,7 +1,7 @@
-from brushcutter import lib_obc_segments as los
-from brushcutter import lib_obc_variable as lov
-from brushcutter import lib_ioncdf as ncdf
-from brushcutter import lib_timemanager as ltim
+from PyCNAL_regridding import lib_obc_segments as los
+from PyCNAL_regridding import lib_obc_variable as lov
+from PyCNAL_regridding import lib_ioncdf as ncdf
+from PyCNAL_regridding import lib_timemanager as ltim
 import numpy as np
 import sys
 import ConfigParser

@@ -1,6 +1,6 @@
-from brushcutter import lib_obc_segments as los
-from brushcutter import lib_obc_variable as lov
-from brushcutter import lib_ioncdf as ncdf
+from PyCNAL_regridding import lib_obc_segments as los
+from PyCNAL_regridding import lib_obc_variable as lov
+from PyCNAL_regridding import lib_ioncdf as ncdf
 
 woatemp = '../data/temp_WOA13-CM2.1_monthly_CCS.nc'
 woasalt = '../data/salt_WOA13-CM2.1_monthly_CCS.nc'
