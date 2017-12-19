@@ -209,8 +209,8 @@ class obc_vectvariable():
 		field_src_v = _ESMF.Field(self.gridsrc_v, staggerloc=_ESMF.StaggerLoc.CENTER)
 
 		# Set up a regridding object between source and destination
-		print('create regridding for u')
 		if interpolator_u is None:
+			print('create regridding for u')
 			if method == 'bilinear':
 				regridme_u = _ESMF.Regrid(field_src_u, self.field_target,
 				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
@@ -222,8 +222,8 @@ class obc_vectvariable():
 		else:
 			regridme_u = interpolator_u
 
-		print('create regridding for v')
 		if interpolator_v is None:
+			print('create regridding for v')
 			if method == 'bilinear':
 				regridme_v = _ESMF.Regrid(field_src_v, self.field_target,
 				                        unmapped_action=_ESMF.UnmappedAction.IGNORE,
