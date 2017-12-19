@@ -1,6 +1,6 @@
-class timeobject():
+class timeobject(object):
 
-	def __init__(self):
-		self.data = 0.
+	def __init__(self,value=0):
+		self.data = value
 		self.units = ''
 		self.calendar = ''

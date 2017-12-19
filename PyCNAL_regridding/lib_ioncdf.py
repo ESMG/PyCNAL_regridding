@@ -169,9 +169,17 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
 	ny = domain.ny / 2
 
 
-	nz = list_variables[0].nz
+	found_nz=False
+	for variable in list_variables:
+		if hasattr(variable,'nz'):
+			nz = variable.nz
+			found_nz=True
+		
+	if not found_nz:
+		print('did not find nz in any variable, will fail...')
+	#nz = list_variables[0].nz
 
-	print nx, ny, nz
+	#print nx, ny, nz
 
 	# make sure all variables are on the same vertical grid
 	for var in list_variables:
