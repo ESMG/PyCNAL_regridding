@@ -168,30 +168,31 @@ def write_ic_file(list_segments,list_variables,list_vectvariables,time_point,out
 	nx = domain.nx / 2
 	ny = domain.ny / 2
 
-
 	found_nz=False
 	for variable in list_variables:
 		if hasattr(variable,'nz'):
-			nz = variable.nz
-			found_nz=True
+			if variable.nz > 1:
+				nz = variable.nz
+				found_nz=True
 		
+	print('nx,ny,nz =', nx,ny,nz)
 	if not found_nz:
 		print('did not find nz in any variable, will fail...')
-	#nz = list_variables[0].nz
-
-	#print nx, ny, nz
 
 	# make sure all variables are on the same vertical grid
 	for var in list_variables:
 		if len(var.data.shape) == 3:
 			if not var.nz == nz:
-				exit('vertical dimensions have to be the same for all variables')
+				print('vertical dimensions have to be the same for all variables')
+				print('nz = ', nz)
+				print('variable ', var.variable_name, ' has nz = ', var.nz )
 
 	# make sure all variables are on the same vertical grid
 	for var in list_vectvariables:
 		if len(var.data_u_out.shape) == 3 and len(var.data_v_out.shape) == 3:
 			if not var.nz == nz:
-				exit('vertical dimensions have to be the same for all variables')
+				print('vertical dimensions have to be the same for all variables')
+				print('nz = ', nz)
 
 	# open file in write mode
 	fid = nc.Dataset(output, 'w', format='NETCDF3_64BIT_OFFSET')
